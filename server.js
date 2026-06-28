@@ -10,16 +10,49 @@ app.use(express.json())
 // ---------------- NOTES ----------------
 app.post("/notes", async (req, res) => {
     try {
-        const { topic } = req.body
+        const { topic, exam = "general", step = 1 } = req.body
+
+        // 🔥 STEP FLOW DEFINE
+        const steps = [
+            "Introduction (basic idea, definition in simple language)",
+            "Types or classification",
+            "Important features / characteristics",
+            "Examples with explanation",
+            "Summary + exam tricks"
+        ]
+
+        const currentStep = steps[step - 1] || steps[0]
+
+        const prompt = `
+You are a teacher.
+
+Topic: ${topic}
+Exam: ${exam}
+
+TASK:
+Explain ONLY this part:
+👉 ${currentStep}
+
+RULES:
+- Use very simple language (like teaching a beginner student)
+- Keep it short (5–8 points max)
+- Use bullet points
+- Do NOT explain full topic
+- Do NOT jump to next steps
+
+IMPORTANT:
+If more content is remaining, write at the end:
+CONTINUE_AVAILABLE
+        `
 
         const response = await axios.post(
             "https://openrouter.ai/api/v1/chat/completions",
             {
                 model: "openai/gpt-3.5-turbo",
-                messages: [{
-                    role: "user",
-                    content: `Create simple exam-ready notes in points for: ${topic}`
-                }]
+                messages: [
+                    { role: "system", content: "You are a helpful exam tutor." },
+                    { role: "user", content: prompt }
+                ]
             },
             {
                 headers: {
@@ -29,9 +62,15 @@ app.post("/notes", async (req, res) => {
             }
         )
 
-        res.json({ result: response.data.choices[0].message.content })
+        const result = response.data.choices[0].message.content
+
+        res.json({
+            result: result,
+            hasMore: step < steps.length
+        })
 
     } catch (err) {
+        console.error(err)
         res.status(500).json({ error: "Notes failed" })
     }
 })
@@ -40,17 +79,69 @@ app.post("/notes", async (req, res) => {
 // ---------------- QUIZ ----------------
 app.post("/quiz", async (req, res) => {
     try {
-        const { topic } = req.body
+        const { topic, level, notes, seenQuestions = [] } = req.body;
+
+        // 🔥 Difficulty instruction
+        let levelInstruction = "";
+
+        switch (level) {
+            case "easy":
+                levelInstruction = "very basic, definition-based MCQs";
+                break;
+            case "hard":
+                levelInstruction = "concept-based tricky MCQs";
+                break;
+            case "harder":
+                levelInstruction = "application-based multi-step MCQs";
+                break;
+            case "hardest":
+                levelInstruction = "exam-level toughest MCQs like JEE/NEET";
+                break;
+            default:
+                levelInstruction = "balanced difficulty MCQs";
+        }
+
+        const prompt = 
+Generate 5 unique MCQ questions on "${topic}"
+
+Level: ${levelInstruction}
+
+IMPORTANT RULES:
+1. Questions must NOT repeat these:
+${seenQuestions.join("\n")}
+
+2. Questions should be based on these notes (if available):
+${notes || "No notes provided"}
+
+3. Output ONLY JSON (no extra text) in this format:
+
+{
+  "quiz": [
+    {
+      "question": "string",
+      "options": ["A", "B", "C", "D"],
+      "correct_answer_index": 0,
+      "explanation": "simple explanation"
+    }
+  ]
+}
+;
 
         const response = await axios.post(
             "https://openrouter.ai/api/v1/chat/completions",
             {
                 model: "openai/gpt-3.5-turbo",
-                messages: [{
-                    role: "user",
-                    content: `Generate 5 MCQ quiz on ${topic} with:
-                    question, 4 options, correct answer index, and explanation in JSON format`
-                }]
+                messages: [
+                    {
+                        role: "system",
+                        content: "You are a strict JSON generator. Always return valid JSON only."
+                    },
+                    {
+                        role: "user",
+                        content: prompt
+                    }
+                ],
+                temperature: 0.7
             },
             {
                 headers: {
@@ -58,15 +149,20 @@ app.post("/quiz", async (req, res) => {
                     "Content-Type": "application/json"
                 }
             }
-        )
+        );
 
-        res.json({ result: response.data.choices[0].message.content })
+        let result = response.data.choices[0].message.content;
+
+        // 🔥 Clean AI output
+        result = result.replace(/```json|```/g, "").trim();
+
+        res.json({ result });
 
     } catch (err) {
-        res.status(500).json({ error: "Quiz failed" })
+        console.error(err.message);
+        res.status(500).json({ error: "Quiz failed" });
     }
-})
-
+});
 
 // ---------------- STUDY PLAN ----------------
 app.post("/plan", async (req, res) => {
