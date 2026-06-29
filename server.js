@@ -22,46 +22,45 @@ Topic: ${topic}
 Exam: ${exam}
 
 TASK:
-Generate COMPLETE, well-structured, and high-quality study notes.
+Generate COMPLETE, FULL-LENGTH STUDY NOTES as if you are teaching the entire chapter.
 
-DEPTH CONTROL:
-- If exam is competitive (JEE, NEET, UPSC, etc.) → explain concepts deeply with logic, reasoning, and examples.
-- If exam is school/boards → explain in simple and clear language.
-- Always match explanation level with exam.
+IMPORTANT:
+- DO NOT create short notes
+- DO NOT summarize
+- Explain EVERYTHING in detail
+- Output must feel like reading a full chapter, not notes
 
-FORMAT (IMPORTANT):
-Do NOT use "PART 1, PART 2" or similar.
+DEPTH RULE:
+- If exam is competitive → go DEEP (concept + derivation + reasoning)
+- If exam is school → clear but still detailed explanation
 
-Use proper headings like:
+STRUCTURE (natural, not forced sections):
+Start from basics and go step-by-step like a teacher explaining from zero.
 
-Introduction  
-Definition  
-Types / Classification  
-Detailed Explanation  
-Formulas / Key Points  
-Exam Tips / Summary  
+COVER EVERYTHING:
+- Basic idea
+- Full explanation of all concepts
+- All types and classifications
+- Why concepts work (logic)
+- Real-life examples
+- All formulas with explanation
+- Units and conditions
+- Important points
+- Common mistakes
+- Exam-level tricks (if needed)
 
-CONTENT RULES:
-- Introduction → concept ko clearly samjhao (8–10 lines)
-- Definition → proper + keywords highlight
-- Types → ALL types cover karo (skip mat karo)
-- Detailed Explanation → sabse important  
-  → step-by-step  
-  → WHY + HOW explain karo  
-  → examples do  
-  → competitive exam ke liye deep logic do  
-- Formulas → formulas + units + conditions
-- Summary → tricks + mistakes + quick revision
+VERY IMPORTANT RULES:
+- Minimum 80–150 lines of explanation
+- Each concept must be deeply explained
+- No skipping any concept
+- No one-line explanation
+- Avoid too many headings — keep flow natural like a chapter
+- Use paragraphs + bullet points
 
-STRICT RULES:
-- Short notes mat banana 
-- Explanation compress mat karna 
-- Har section detailed hona chahiye
-- Output textbook jaisa feel hona chahiye
-- Clean headings use karo
-- Bullet points + paragraphs dono use karo
+OUTPUT STYLE:
+- Looks like a full textbook explanation
+- Easy English but deep understanding
 `;
-
         const response = await axios.post(
             "https://openrouter.ai/api/v1/chat/completions",
             {
