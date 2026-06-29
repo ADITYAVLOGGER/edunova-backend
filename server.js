@@ -1,20 +1,16 @@
-require("dotenv").config()
-const express = require("express")
-const axios = require("axios")
-const cors = require("cors")
+const express = require("express");
+const axios = require("axios");
+require("dotenv").config();
 
-const app = express()
-app.use(cors())
-app.use(express.json())
+const app = express();
+app.use(express.json());
 
-// ---------------- NOTES ----------------
+// ======================= NOTES API =======================
 app.post("/notes", async (req, res) => {
-try {
-const { topic, exam = "NEET" } = req.body
+    try {
+        const { topic, exam = "NEET" } = req.body;
 
-
-    const prompt = 
-
+        const prompt = `
 Topic: ${topic}
 Exam: ${exam}
 
@@ -24,95 +20,79 @@ Create COMPLETE textbook-style notes in EASY ENGLISH so that a beginner student 
 STRICT FORMAT (VERY IMPORTANT):
 
 PART 1: Introduction
-
-* Explain basic idea in simple words
-* Add real-life example if possible
+- Explain basic idea in simple words
+- Add real-life example
 
 PART 2: Definition
-
-* Clear and exam-ready definition
-* Highlight important keywords
+- Clear definition
+- Highlight keywords
 
 PART 3: Types / Classification
-
-* List all types
-* Explain each type briefly
-* DO NOT cut any type
+- List all types
+- Explain briefly
 
 PART 4: Detailed Explanation
-
-* Explain concept step-by-step
-* Add examples
-* Cover full logic (no skipping)
+- Step-by-step explanation
+- Add examples
 
 PART 5: Formulas / Important Points
-
-* All formulas (if any)
-* Important facts
-* Units if required
+- All formulas
+- Important facts
 
 PART 6: PYQ Tricks / Summary
-
-* Exam tricks
-* Common mistakes
-* Quick revision points
+- Exam tricks
+- Common mistakes
 
 RULES:
+- Very simple English
+- Use bullet points
+- Do NOT skip any PART
+- Each PART must be complete
+- Output ONLY text (no markdown, no extra text)
+`;
 
-* Use very simple English (class 10 level)
-* Use bullet points
-* DO NOT skip any section
-* DO NOT leave any PART incomplete
-* DO NOT mix parts
-* Each PART must be fully complete
-* Keep flow like a real textbook
-
-IMPORTANT:
-Output must ALWAYS follow PART structure exactly.
-`
-
-```
-    const response = await axios.post(
-        "https://openrouter.ai/api/v1/chat/completions",
-        {
-            model: "openai/gpt-3.5-turbo",
-            messages: [
-                { role: "system", content: "You are a helpful NEET tutor." },
-                { role: "user", content: prompt }
-            ]
-        },
-        {
-            headers: {
-                "Authorization": `Bearer ${process.env.API_KEY}`,
-                "Content-Type": "application/json"
+        const response = await axios.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            {
+                model: "openai/gpt-3.5-turbo",
+                messages: [
+                    {
+                        role: "system",
+                        content: "You are a NEET tutor. Always follow PART format strictly."
+                    },
+                    {
+                        role: "user",
+                        content: prompt
+                    }
+                ],
+                temperature: 0.7
+            },
+            {
+                headers: {
+                    Authorization: `Bearer ${process.env.API_KEY}`,
+                    "Content-Type": "application/json"
+                }
             }
-        }
-    )
+        );
 
-    const result = response.data.choices[0].message.content
+        const result = response.data.choices[0].message.content;
 
-    res.json({
-        result: result
-    })
+        res.json({ result });
 
-} catch (err) {
-    console.error(err)
-    res.status(500).json({ error: "Notes failed" })
-}
+    } catch (err) {
+        console.error("NOTES ERROR:", err.message);
+        res.status(500).json({ error: "Notes failed" });
+    }
+});
 
 
-})
-
-
-
-// ---------------- QUIZ ----------------
+// ======================= QUIZ API =======================
 app.post("/quiz", async (req, res) => {
     try {
-        const { topic, level, notes, seenQuestions = [] } = req.body;
+        const { topic, level, notes = "", seenQuestions = [] } = req.body;
 
-        // 🔥 Difficulty instruction
+        // 🎯 LEVEL LOGIC
         let levelInstruction = "";
-
         switch (level) {
             case "easy":
                 levelInstruction = "very basic, definition-based MCQs";
@@ -124,25 +104,30 @@ app.post("/quiz", async (req, res) => {
                 levelInstruction = "application-based multi-step MCQs";
                 break;
             case "hardest":
-                levelInstruction = "exam-level toughest MCQs like JEE/NEET";
+                levelInstruction = "exam-level toughest MCQs like NEET/JEE";
                 break;
             default:
                 levelInstruction = "balanced difficulty MCQs";
         }
 
-        const prompt = 
-Generate 5 unique MCQ questions on "${topic}"
+        const prompt = `
+Generate 5 UNIQUE MCQ questions.
 
-Level: ${levelInstruction}
+TOPIC: ${topic}
+LEVEL: ${levelInstruction}
 
-IMPORTANT RULES:
-1. Questions must NOT repeat these:
+VERY IMPORTANT:
+
+1. ONLY generate questions from THIS content:
+${notes}
+
+2. DO NOT go outside this content
+3. DO NOT repeat these questions:
 ${seenQuestions.join("\n")}
 
-2. Questions should be based on these notes (if available):
-${notes || "No notes provided"}
+4. Questions must be different from each other
 
-3. Output ONLY JSON (no extra text) in this format:
+5. Output ONLY VALID JSON:
 
 {
   "quiz": [
@@ -150,11 +135,12 @@ ${notes || "No notes provided"}
       "question": "string",
       "options": ["A", "B", "C", "D"],
       "correct_answer_index": 0,
-      "explanation": "simple explanation"
+      "explanation": "simple explanation",
+      "subTopic": "topic name"
     }
   ]
 }
-;
+`;
 
         const response = await axios.post(
             "https://openrouter.ai/api/v1/chat/completions",
@@ -163,18 +149,18 @@ ${notes || "No notes provided"}
                 messages: [
                     {
                         role: "system",
-                        content: "You are a strict JSON generator. Always return valid JSON only."
+                        content: "You are a strict JSON generator. Only return valid JSON."
                     },
                     {
                         role: "user",
                         content: prompt
                     }
                 ],
-                temperature: 0.7
+                temperature: 0.6
             },
             {
                 headers: {
-                    "Authorization": Bearer ${process.env.API_KEY},
+                    Authorization: `Bearer ${process.env.API_KEY}`,
                     "Content-Type": "application/json"
                 }
             }
@@ -182,116 +168,24 @@ ${notes || "No notes provided"}
 
         let result = response.data.choices[0].message.content;
 
-    
-        result = result.replace(/json|/g, "").trim();
+        // 🔥 CLEAN JSON (IMPORTANT FIX)
+        result = result
+            .replace(/```json/g, "")
+            .replace(/```/g, "")
+            .trim();
 
         res.json({ result });
 
     } catch (err) {
-        console.error(err.message);
+        console.error("QUIZ ERROR:", err.message);
         res.status(500).json({ error: "Quiz failed" });
     }
 });
 
-// ---------------- STUDY PLAN ----------------
-app.post("/plan", async (req, res) => {
-    try {
-        const { examType, examDate, subjects, level } = req.body
 
-        const response = await axios.post(
-            "https://openrouter.ai/api/v1/chat/completions",
-            {
-                model: "openai/gpt-3.5-turbo",
-                messages: [
-                    {
-                        role: "user",
-                        content: 
-Create a COMPLETE structured study planner in JSON.
+// ======================= SERVER =======================
+const PORT = 3000;
 
-Exam: ${examType}
-Level: ${level}
-Subjects: ${subjects}
-Exam Date: ${examDate || "not provided"}
-
-Rules:
-1. Give full syllabus for each subject
-2. Divide into chapters
-3. Each chapter must have:
-   - chapterName
-   - subtopics (array)
-   - estimatedHours
-4. Arrange in best study order (easy → hard)
-5. If examDate given → distribute time smartly
-
-Return STRICT JSON ONLY like:
-
-{
-  "subjects": [
-    {
-      "name": "Physics",
-      "chapters": [
-        {
-          "chapterName": "Kinematics",
-          "estimatedHours": 5,
-          "subtopics": ["Motion", "Velocity", "Acceleration"]
-        }
-      ]
-    }
-  ]
-}
-
-                    }
-                ]
-            },
-            {
-                headers: {
-                    "Authorization": `Bearer ${process.env.API_KEY}`,
-                    "Content-Type": "application/json"
-                }
-            }
-        )
-
-        const raw = response.data.choices[0].message.content
-
-        res.json({ result: raw })
-
-    } catch (err) {
-        res.status(500).json({ error: "Plan failed" })
-    }
-})
-
-
-
-app.post("/doubt", async (req, res) => {
-    try {
-        const { question } = req.body
-
-        const response = await axios.post(
-            "https://openrouter.ai/api/v1/chat/completions",
-            {
-                model: "openai/gpt-3.5-turbo",
-                messages: [{
-                    role: "user",
-                    content: `Solve this doubt in simple student friendly way: ${question}`
-                }]
-            },
-            {
-                headers: {
-                    "Authorization": Bearer ${process.env.API_KEY},
-                    "Content-Type": "application/json"
-                }
-            }
-        )
-
-        res.json({ result: response.data.choices[0].message.content })
-
-    } catch (err) {
-        res.status(500).json({ error: "Doubt failed" })
-    }
-})
-
-
-// ---------------- SERVER ----------------
-app.listen(3000, () => {
-    console.log("EduNova AI Backend running on port 3000")
-})
+app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+});
