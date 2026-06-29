@@ -18,7 +18,7 @@ app.post("/notes", async (req, res) => {
                 model: "openai/gpt-3.5-turbo",
                 messages: [{
                     role: "user",
-                    content: Create detailed, high-quality study notes for the topic: ${topic} suitable for competitive exams like ${exam}.
+                    content: Create detailed, high-quality study notes for the topic: ${topic} .
 
 Requirements:
 
