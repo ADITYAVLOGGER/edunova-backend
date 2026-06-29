@@ -101,4 +101,3 @@ app.post("/doubt", async (req, res) => {
 app.listen(3000, () => {
     console.log("EduNova AI Backend running on port 3000")
 })
-})
