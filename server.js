@@ -18,7 +18,28 @@ app.post("/notes", async (req, res) => {
                 model: "openai/gpt-3.5-turbo",
                 messages: [{
                     role: "user",
-                    content: `Create simple exam-ready notes in points for: ${topic}`
+                    content: Create detailed, high-quality study notes for the topic: ${topic} suitable for competitive exams like JEE.
+
+Requirements:
+
+* Cover the topic deeply from basic to advanced level
+* Use clear headings and subheadings
+* Include definitions, explanations, and concepts in simple language
+* Add all important formulas with proper formatting
+* Include examples wherever needed
+* Add important points, tricks, and common mistakes
+* Include previous year question insights if relevant
+* Use bullet points for clarity
+* Keep it well-structured and easy to read
+
+Important:
+
+* Do NOT divide into PARTS or steps
+* Do NOT skip any important concept related to the topic
+* Output should feel like complete revision notes of the chapter
+
+Make it student-friendly but conceptually strong.
+
                 }]
             },
             {
