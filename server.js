@@ -10,52 +10,110 @@ app.use(express.json())
 // ---------------- NOTES ----------------
 app.post("/notes", async (req, res) => {
     try {
-        const { topic } = req.body
+
+        const { topic, exam = "General" } = req.body;
+
+        if (!topic) {
+            return res.status(400).json({ error: "Topic is required" });
+        }
+
+        const prompt = `
+Topic: ${topic}
+Exam: ${exam}
+
+TASK:
+Generate COMPLETE and HIGH-QUALITY study notes.
+
+ADAPT DEPTH BASED ON EXAM:
+- If exam is competitive (JEE, NEET, UPSC, etc.) → deep conceptual + detailed explanation
+- If exam is school/boards → simple + clear explanation
+- Maintain correct level based on exam
+
+FORMAT (DO NOT USE PART WORD):
+
+1. Introduction
+- Explain concept clearly
+- Build intuition
+- Add real-life example
+- Minimum 8–10 lines
+
+2. Definition
+- Clear definition
+- Highlight keywords
+- Add examples
+
+3. Types / Classification
+- Cover ALL types
+- Each type → 3–5 lines explanation
+
+4. Detailed Explanation (MOST IMPORTANT)
+- Step-by-step explanation
+- Explain WHY + HOW
+- Add examples
+- For competitive exams → go deeper
+- Minimum 12–20 lines
+
+5. Formulas / Important Points
+- All formulas (if any)
+- Units
+- Important facts
+
+6. Exam Tips / Summary
+- Tricks
+- Common mistakes
+- Quick revision
+
+RULES:
+- DO NOT write short notes
+- DO NOT compress explanation
+- Each section must be detailed
+- Output must feel like textbook
+- Use clean headings
+`;
 
         const response = await axios.post(
             "https://openrouter.ai/api/v1/chat/completions",
             {
                 model: "openai/gpt-3.5-turbo",
-                messages: [{
-                    role: "user",
-                    content: Create detailed, high-quality study notes for the topic: ${topic} .
-
-Requirements:
-
-* Cover the topic deeply from basic to advanced level
-* Use clear headings and subheadings
-* Include definitions, explanations, and concepts in simple language
-* Add all important formulas with proper formatting
-* Include examples wherever needed
-* Add important points, tricks, and common mistakes
-* Include previous year question insights if relevant
-* Use bullet points for clarity
-* Keep it well-structured and easy to read
-
-Important:
-
-* Do NOT divide into PARTS or steps
-* Do NOT skip any important concept related to the topic
-* Output should feel like complete revision notes of the chapter
-
-Make it student-friendly but conceptually strong.
-
-                }]
+                messages: [
+                    {
+                        role: "system",
+                        content: "You are an expert teacher who creates detailed study notes."
+                    },
+                    {
+                        role: "user",
+                        content: prompt
+                    }
+                ],
+                temperature: 0.6,
+                max_tokens: 1500
             },
             {
                 headers: {
-                    "Authorization": `Bearer ${process.env.API_KEY}`,
+                    Authorization: `Bearer ${process.env.API_KEY}`,
                     "Content-Type": "application/json"
                 }
             }
-        )
+        );
 
-        res.json({ result: response.data.choices[0].message.content })
+        let result = response.data.choices[0].message.content;
+
+        // 🔥 CLEAN RESPONSE (important)
+        result = result
+            .replace(/```/g, "")
+            .replace(/json/gi, "")
+            .trim();
+
+        res.json({ result });
 
     } catch (err) {
-        res.status(500).json({ error: "Notes failed" })
+        console.error("NOTES ERROR:", err.message);
+
+        res.status(500).json({
+            error: "Notes generation failed"
+        });
     }
-})
+});
 
 
 // ---------------- QUIZ ----------------
