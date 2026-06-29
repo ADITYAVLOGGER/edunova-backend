@@ -22,53 +22,44 @@ Topic: ${topic}
 Exam: ${exam}
 
 TASK:
-Generate COMPLETE and HIGH-QUALITY study notes.
+Generate COMPLETE, well-structured, and high-quality study notes.
 
-ADAPT DEPTH BASED ON EXAM:
-- If exam is competitive (JEE, NEET, UPSC, etc.) → deep conceptual + detailed explanation
-- If exam is school/boards → simple + clear explanation
-- Maintain correct level based on exam
+DEPTH CONTROL:
+- If exam is competitive (JEE, NEET, UPSC, etc.) → explain concepts deeply with logic, reasoning, and examples.
+- If exam is school/boards → explain in simple and clear language.
+- Always match explanation level with exam.
 
-FORMAT (DO NOT USE PART WORD):
+FORMAT (IMPORTANT):
+Do NOT use "PART 1, PART 2" or similar.
 
-1. Introduction
-- Explain concept clearly
-- Build intuition
-- Add real-life example
-- Minimum 8–10 lines
+Use proper headings like:
 
-2. Definition
-- Clear definition
-- Highlight keywords
-- Add examples
+Introduction  
+Definition  
+Types / Classification  
+Detailed Explanation  
+Formulas / Key Points  
+Exam Tips / Summary  
 
-3. Types / Classification
-- Cover ALL types
-- Each type → 3–5 lines explanation
+CONTENT RULES:
+- Introduction → concept ko clearly samjhao (8–10 lines)
+- Definition → proper + keywords highlight
+- Types → ALL types cover karo (skip mat karo)
+- Detailed Explanation → sabse important  
+  → step-by-step  
+  → WHY + HOW explain karo  
+  → examples do  
+  → competitive exam ke liye deep logic do  
+- Formulas → formulas + units + conditions
+- Summary → tricks + mistakes + quick revision
 
-4. Detailed Explanation (MOST IMPORTANT)
-- Step-by-step explanation
-- Explain WHY + HOW
-- Add examples
-- For competitive exams → go deeper
-- Minimum 12–20 lines
-
-5. Formulas / Important Points
-- All formulas (if any)
-- Units
-- Important facts
-
-6. Exam Tips / Summary
-- Tricks
-- Common mistakes
-- Quick revision
-
-RULES:
-- DO NOT write short notes
-- DO NOT compress explanation
-- Each section must be detailed
-- Output must feel like textbook
-- Use clean headings
+STRICT RULES:
+- Short notes mat banana 
+- Explanation compress mat karna 
+- Har section detailed hona chahiye
+- Output textbook jaisa feel hona chahiye
+- Clean headings use karo
+- Bullet points + paragraphs dono use karo
 `;
 
         const response = await axios.post(
