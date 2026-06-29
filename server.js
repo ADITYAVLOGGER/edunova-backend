@@ -9,71 +9,103 @@ app.use(express.json())
 
 // ---------------- NOTES ----------------
 app.post("/notes", async (req, res) => {
-    try {
-        const { topic, exam = "general", step = 1 } = req.body
+try {
+const { topic, exam = "NEET" } = req.body
 
-        // 🔥 STEP FLOW DEFINE
-        const steps = [
-            "Introduction (basic idea, definition in simple language)",
-            "Types or classification",
-            "Important features / characteristics",
-            "Examples with explanation",
-            "Summary + exam tricks"
-        ]
 
-        const currentStep = steps[step - 1] || steps[0]
+    const prompt = 
 
-        const prompt = `
-You are a teacher.
+
+You are a professional NEET Physics teacher.
 
 Topic: ${topic}
 Exam: ${exam}
 
 TASK:
-Explain ONLY this part:
-👉 ${currentStep}
+Create COMPLETE textbook-style notes in EASY ENGLISH so that a beginner student can understand in one reading.
+
+STRICT FORMAT (VERY IMPORTANT):
+
+PART 1: Introduction
+
+* Explain basic idea in simple words
+* Add real-life example if possible
+
+PART 2: Definition
+
+* Clear and exam-ready definition
+* Highlight important keywords
+
+PART 3: Types / Classification
+
+* List all types
+* Explain each type briefly
+* DO NOT cut any type
+
+PART 4: Detailed Explanation
+
+* Explain concept step-by-step
+* Add examples
+* Cover full logic (no skipping)
+
+PART 5: Formulas / Important Points
+
+* All formulas (if any)
+* Important facts
+* Units if required
+
+PART 6: PYQ Tricks / Summary
+
+* Exam tricks
+* Common mistakes
+* Quick revision points
 
 RULES:
-- Use very simple language (like teaching a beginner student)
-- Keep it short (5–8 points max)
-- Use bullet points
-- Do NOT explain full topic
-- Do NOT jump to next steps
+
+* Use very simple English (class 10 level)
+* Use bullet points
+* DO NOT skip any section
+* DO NOT leave any PART incomplete
+* DO NOT mix parts
+* Each PART must be fully complete
+* Keep flow like a real textbook
 
 IMPORTANT:
-If more content is remaining, write at the end:
-CONTINUE_AVAILABLE
-        `
+Output must ALWAYS follow PART structure exactly.
+`
 
-        const response = await axios.post(
-            "https://openrouter.ai/api/v1/chat/completions",
-            {
-                model: "openai/gpt-3.5-turbo",
-                messages: [
-                    { role: "system", content: "You are a helpful exam tutor." },
-                    { role: "user", content: prompt }
-                ]
-            },
-            {
-                headers: {
-                    "Authorization": `Bearer ${process.env.API_KEY}`,
-                    "Content-Type": "application/json"
-                }
+```
+    const response = await axios.post(
+        "https://openrouter.ai/api/v1/chat/completions",
+        {
+            model: "openai/gpt-3.5-turbo",
+            messages: [
+                { role: "system", content: "You are a helpful NEET tutor." },
+                { role: "user", content: prompt }
+            ]
+        },
+        {
+            headers: {
+                "Authorization": `Bearer ${process.env.API_KEY}`,
+                "Content-Type": "application/json"
             }
-        )
+        }
+    )
 
-        const result = response.data.choices[0].message.content
+    const result = response.data.choices[0].message.content
 
-        res.json({
-            result: result,
-            hasMore: step < steps.length
-        })
+    res.json({
+        result: result
+    })
 
-    } catch (err) {
-        console.error(err)
-        res.status(500).json({ error: "Notes failed" })
-    }
+} catch (err) {
+    console.error(err)
+    res.status(500).json({ error: "Notes failed" })
+}
+
+
 })
+
 
 
 // ---------------- QUIZ ----------------
@@ -145,7 +177,7 @@ ${notes || "No notes provided"}
             },
             {
                 headers: {
-                    "Authorization": `Bearer ${process.env.API_KEY}`,
+                    "Authorization": Bearer ${process.env.API_KEY},
                     "Content-Type": "application/json"
                 }
             }
@@ -153,8 +185,8 @@ ${notes || "No notes provided"}
 
         let result = response.data.choices[0].message.content;
 
-        // 🔥 Clean AI output
-        result = result.replace(/```json|```/g, "").trim();
+    
+        result = result.replace(/json|/g, "").trim();
 
         res.json({ result });
 
@@ -176,7 +208,7 @@ app.post("/plan", async (req, res) => {
                 messages: [
                     {
                         role: "user",
-                        content: `
+                        content: 
 Create a COMPLETE structured study planner in JSON.
 
 Exam: ${examType}
@@ -210,7 +242,7 @@ Return STRICT JSON ONLY like:
     }
   ]
 }
-`
+
                     }
                 ]
             },
@@ -232,7 +264,7 @@ Return STRICT JSON ONLY like:
 })
 
 
-// ---------------- DOUBT SOLVER ----------------
+
 app.post("/doubt", async (req, res) => {
     try {
         const { question } = req.body
@@ -248,7 +280,7 @@ app.post("/doubt", async (req, res) => {
             },
             {
                 headers: {
-                    "Authorization": `Bearer ${process.env.API_KEY}`,
+                    "Authorization": Bearer ${process.env.API_KEY},
                     "Content-Type": "application/json"
                 }
             }
