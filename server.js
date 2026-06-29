@@ -15,9 +15,6 @@ const { topic, exam = "NEET" } = req.body
 
     const prompt = 
 
-
-You are a professional NEET Physics teacher.
-
 Topic: ${topic}
 Exam: ${exam}
 
