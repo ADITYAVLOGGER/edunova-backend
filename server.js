@@ -107,19 +107,86 @@ OUTPUT STYLE:
 
 
 // ---------------- QUIZ ----------------
+// const express = require("express");
+// const axios = require("axios");
+
+// const app = express();
+// app.use(express.json());
+
 app.post("/quiz", async (req, res) => {
     try {
-        const { topic } = req.body
+        const { topic, level, notes } = req.body;
+
+    
+        let difficultyInstruction = "";
+
+        if (level === "easy") {
+            difficultyInstruction = `
+            - Basic conceptual questions
+            - Direct theory based
+            - Easy to understand
+            `;
+        } else if (level === "hard") {
+            difficultyInstruction = `
+            - Concept-based tricky questions
+            - Application of concepts
+            - Moderate difficulty
+            `;
+        } else if (level === "harder") {
+            difficultyInstruction = `
+            - Multi-concept questions
+            - Logical reasoning required
+            - Confusing options
+            `;
+        } else if (level === "hardest") {
+            difficultyInstruction = `
+            - Exam level questions (JEE/NEET/UPSC style)
+            - Highly tricky and conceptual
+            - Close answer options (very confusing)
+            - Requires deep understanding
+            `;
+        }
+
+    
+        const prompt = `
+Generate 5 MCQ quiz on topic: "${topic}"
+
+Difficulty Level: ${level}
+
+Instructions:
+${difficultyInstruction}
+
+Use these notes for context:
+${notes}
+
+⚠ STRICT RULES:
+- Return ONLY valid JSON
+- No markdown
+- No explanation outside JSON
+- No extra text
+
+Format:
+{
+  "quiz": [
+    {
+      "question": "",
+      "options": ["", "", "", ""],
+      "correct_answer_index": 0,
+      "explanation": "",
+      "subTopic": ""
+    }
+  ]
+}
+`;
 
         const response = await axios.post(
             "https://openrouter.ai/api/v1/chat/completions",
             {
                 model: "openai/gpt-3.5-turbo",
-                messages: [{
-                    role: "user",
-                    content: `Generate 5 MCQ quiz on ${topic} with:
-                    question, 4 options, correct answer index, and explanation in JSON format`
-                }]
+                messages: [
+                    { role: "user", content: prompt }
+                ],
+                temperature: 0.7
             },
             {
                 headers: {
@@ -127,14 +194,35 @@ app.post("/quiz", async (req, res) => {
                     "Content-Type": "application/json"
                 }
             }
-        )
+        );
 
-        res.json({ result: response.data.choices[0].message.content })
+        let raw = response.data.choices[0].message.content;
+
+      
+        raw = raw
+            .replace(/```json/g, "")
+            .replace(/```/g, "")
+            .trim();
+
+    
+        let parsed;
+        try {
+            parsed = JSON.parse(raw);
+        } catch (e) {
+            console.log("JSON Parse Failed:", raw);
+            return res.status(500).json({ error: "Invalid JSON from AI" });
+        }
+
+    
+        res.json(parsed);
 
     } catch (err) {
-        res.status(500).json({ error: "Quiz failed" })
+        console.log(" Server Error:", err.message);
+        res.status(500).json({ error: "Quiz failed" });
     }
-})
+});
+
+module.exports = app;
 
 // ---------------- DOUBT SOLVER ----------------
 app.post("/doubt", async (req, res) => {
