@@ -227,16 +227,27 @@ module.exports = app;
 // ---------------- DOUBT SOLVER ----------------
 app.post("/doubt", async (req, res) => {
     try {
-        const { question } = req.body
+        const { question } = req.body;
+
+        const prompt = `
+You are a helpful teacher.
+
+Explain the answer in:
+- Very simple language
+- Step by step
+- Use examples if needed
+- Keep it short but clear
+
+Question:
+${question}
+`;
 
         const response = await axios.post(
             "https://openrouter.ai/api/v1/chat/completions",
             {
                 model: "openai/gpt-3.5-turbo",
-                messages: [{
-                    role: "user",
-                    content: `Solve this doubt in simple student friendly way: ${question}`
-                }]
+                messages: [{ role: "user", content: prompt }],
+                temperature: 0.7
             },
             {
                 headers: {
@@ -244,14 +255,17 @@ app.post("/doubt", async (req, res) => {
                     "Content-Type": "application/json"
                 }
             }
-        )
+        );
 
-        res.json({ result: response.data.choices[0].message.content })
+        const reply = response.data.choices[0].message.content;
+
+        res.json({ result: reply });
 
     } catch (err) {
-        res.status(500).json({ error: "Doubt failed" })
+        console.log(err.message);
+        res.status(500).json({ error: "Doubt failed" });
     }
-})
+});
 
 
 // ---------------- SERVER ----------------
