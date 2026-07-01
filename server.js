@@ -230,30 +230,25 @@ app.post("/doubt", async (req, res) => {
         const { question } = req.body;
 
         const prompt = `
-You are a helpful teacher.
+Explain this question in simple steps with a short answer:
 
-Explain the answer in:
-- Very simple language
-- Step by step
-- Use examples if needed
-- Keep it short but clear
-
-Question:
 ${question}
 `;
 
         const response = await axios.post(
             "https://openrouter.ai/api/v1/chat/completions",
             {
-                model: "openai/gpt-3.5-turbo",
+                model: "openai/gpt-4o-mini",
                 messages: [{ role: "user", content: prompt }],
-                temperature: 0.7
+                temperature: 0.5,
+                max_tokens: 300
             },
             {
                 headers: {
                     "Authorization": `Bearer ${process.env.API_KEY}`,
                     "Content-Type": "application/json"
-                }
+                },
+                timeout: 10000
             }
         );
 
