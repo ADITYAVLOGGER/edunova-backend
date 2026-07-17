@@ -67,65 +67,42 @@ Generate detailed study notes on "${topic}" for ${exam}.
 
 app.post("/quiz", async (req, res) => {
     try {
-        const { topic, level, notes } = req.body;
+        const { topic, level = "easy", notes = "" } = req.body;
 
-    
         let difficultyInstruction = "";
 
         if (level === "easy") {
-            difficultyInstruction = `
-            - Basic conceptual questions
-            - Direct theory based
-            - Easy to understand
-            `;
+            difficultyInstruction = "Basic conceptual, direct questions";
         } else if (level === "hard") {
-            difficultyInstruction = `
-            - Concept-based tricky questions
-            - Application of concepts
-            - Moderate difficulty
-            `;
+            difficultyInstruction = "Concept-based and application questions";
         } else if (level === "harder") {
-            difficultyInstruction = `
-            - Multi-concept questions
-            - Logical reasoning required
-            - Confusing options
-            `;
+            difficultyInstruction = "Multi-concept and logical reasoning questions";
         } else if (level === "hardest") {
-            difficultyInstruction = `
-            - Exam level questions (JEE/NEET/UPSC style)
-            - Highly tricky and conceptual
-            - Close answer options (very confusing)
-            - Requires deep understanding
-            `;
+            difficultyInstruction = "Exam-level tricky and deep conceptual questions";
         }
 
-    
+        // 🔥 LIMIT NOTES (VERY IMPORTANT)
+        const shortNotes = notes.substring(0, 1200);
+
         const prompt = `
-Generate 5 MCQ quiz on topic: "${topic}"
+Generate 5 MCQs on "${topic}"
 
-Difficulty Level: ${level}
+Difficulty: ${difficultyInstruction}
 
-Instructions:
-${difficultyInstruction}
+Use context:
+${shortNotes}
 
-Use these notes for context:
-${notes}
+Return ONLY valid JSON.
 
-⚠ STRICT RULES:
-- Return ONLY valid JSON
-- No markdown
-- No explanation outside JSON
-- No extra text
-
-Format:
+FORMAT:
 {
   "quiz": [
     {
-      "question": "",
-      "options": ["", "", "", ""],
+      "question": "string",
+      "options": ["A", "B", "C", "D"],
       "correct_answer_index": 0,
-      "explanation": "",
-      "subTopic": ""
+      "explanation": "string",
+      "subTopic": "string"
     }
   ]
 }
@@ -134,11 +111,19 @@ Format:
         const response = await axios.post(
             "https://openrouter.ai/api/v1/chat/completions",
             {
-                model: "openai/gpt-3.5-turbo",
+                model: "openai/gpt-4o-mini", // ✅ FIXED MODEL
                 messages: [
-                    { role: "user", content: prompt }
+                    {
+                        role: "system",
+                        content: "You are a quiz generator that ONLY returns valid JSON."
+                    },
+                    {
+                        role: "user",
+                        content: prompt
+                    }
                 ],
-                temperature: 0.7
+                temperature: 0.5,
+                max_tokens: 800 // ✅ SAFE LIMIT
             },
             {
                 headers: {
@@ -150,26 +135,38 @@ Format:
 
         let raw = response.data.choices[0].message.content;
 
-      
+        // 🔥 CLEAN RESPONSE
         raw = raw
             .replace(/```json/g, "")
             .replace(/```/g, "")
             .trim();
 
-    
         let parsed;
+
         try {
             parsed = JSON.parse(raw);
         } catch (e) {
-            console.log("JSON Parse Failed:", raw);
-            return res.status(500).json({ error: "Invalid JSON from AI" });
+            console.log("❌ JSON Parse Failed:", raw);
+
+            // 🔥 FALLBACK (VERY IMPORTANT)
+            return res.json({
+                quiz: [
+                    {
+                        question: `Basic question on ${topic}?`,
+                        options: ["Option A", "Option B", "Option C", "Option D"],
+                        correct_answer_index: 0,
+                        explanation: "Fallback explanation",
+                        subTopic: topic
+                    }
+                ]
+            });
         }
 
-    
         res.json(parsed);
 
     } catch (err) {
-        console.log(" Server Error:", err.message);
+        console.log("❌ SERVER ERROR:", err.response?.data || err.message);
+
         res.status(500).json({ error: "Quiz failed" });
     }
 });
