@@ -18,48 +18,16 @@ app.post("/notes", async (req, res) => {
         }
 
         const prompt = `
-Topic: ${topic}
-Exam: ${exam}
+Generate detailed study notes on "${topic}" for ${exam}.
 
-TASK:
-Generate COMPLETE, FULL-LENGTH STUDY NOTES as if you are teaching the entire chapter.
+Rules:
+- Clear explanation from basics
+- Include key concepts, formulas, examples
+- Use bullet points + short paragraphs
+- Keep it structured and readable
+- Length: 40–60 lines max
 
-IMPORTANT:
-- DO NOT create short notes
-- DO NOT summarize
-- Explain EVERYTHING in detail
-- Output must feel like reading a full chapter, not notes
-
-DEPTH RULE:
-- If exam is competitive → go DEEP (concept + derivation + reasoning)
-- If exam is school → clear but still detailed explanation
-
-STRUCTURE (natural, not forced sections):
-Start from basics and go step-by-step like a teacher explaining from zero.
-
-COVER EVERYTHING:
-- Basic idea
-- Full explanation of all concepts
-- All types and classifications
-- Why concepts work (logic)
-- Real-life examples
-- All formulas with explanation
-- Units and conditions
-- Important points
-- Common mistakes
-- Exam-level tricks (if needed)
-
-VERY IMPORTANT RULES:
-- Minimum 80–150 lines of explanation
-- Each concept must be deeply explained
-- No skipping any concept
-- No one-line explanation
-- Avoid too many headings — keep flow natural like a chapter
-- Use paragraphs + bullet points
-
-OUTPUT STYLE:
-- Looks like a full textbook explanation
-- Easy English but deep understanding
+Make it exam-focused and easy to revise.
 `;
         const response = await axios.post(
             "https://openrouter.ai/api/v1/chat/completions",
@@ -76,7 +44,7 @@ OUTPUT STYLE:
                     }
                 ],
                 temperature: 0.6,
-                max_tokens: 1500
+                max_tokens: 800
             },
             {
                 headers: {
@@ -97,7 +65,7 @@ OUTPUT STYLE:
         res.json({ result });
 
     } catch (err) {
-        console.error("NOTES ERROR:", err.message);
+        console.error("NOTES ERROR:", err.response?.data || err.message);
 
         res.status(500).json({
             error: "Notes generation failed"
