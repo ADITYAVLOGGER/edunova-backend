@@ -10,7 +10,6 @@ app.use(express.json())
 // ---------------- NOTES ----------------
 app.post("/notes", async (req, res) => {
     try {
-
         const { topic, exam = "General" } = req.body;
 
         if (!topic) {
@@ -20,28 +19,20 @@ app.post("/notes", async (req, res) => {
         const prompt = `
 Generate detailed study notes on "${topic}" for ${exam}.
 
-Rules:
-- Clear explanation from basics
-- Include key concepts, formulas, examples
-- Use bullet points + short paragraphs
-- Keep it structured and readable
-- Length: 40–60 lines max
-
-Make it exam-focused and easy to revise.
+- Start from basics
+- Explain concepts clearly
+- Add formulas and examples
+- Use bullet points
+- Keep it exam focused
+- 40–60 lines max
 `;
+
         const response = await axios.post(
             "https://openrouter.ai/api/v1/chat/completions",
             {
-                model: "openai/gpt-3.5-turbo",
+                model: "openai/gpt-4o-mini",
                 messages: [
-                    {
-                        role: "system",
-                        content: "You are an expert teacher who creates detailed study notes."
-                    },
-                    {
-                        role: "user",
-                        content: prompt
-                    }
+                    { role: "user", content: prompt }
                 ],
                 temperature: 0.6,
                 max_tokens: 800
@@ -54,13 +45,7 @@ Make it exam-focused and easy to revise.
             }
         );
 
-        let result = response.data.choices[0].message.content;
-
-        // 🔥 CLEAN RESPONSE (important)
-        result = result
-            .replace(/```/g, "")
-            .replace(/json/gi, "")
-            .trim();
+        const result = response.data.choices[0].message.content;
 
         res.json({ result });
 
@@ -72,7 +57,6 @@ Make it exam-focused and easy to revise.
         });
     }
 });
-
 
 // ---------------- QUIZ ----------------
 // const express = require("express");
