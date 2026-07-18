@@ -59,6 +59,8 @@ app.use(express.json())
 //     }
 // });
 
+const axios = require("axios");
+
 const MODELS = [
     "qwen/qwen2.5-7b-instruct:free",
     "mistralai/mistral-7b-instruct:free"
@@ -68,27 +70,37 @@ async function generateNotes(prompt) {
 
     for (let model of MODELS) {
         try {
+            console.log("Trying model:", model);
+
             const response = await axios.post(
                 "https://openrouter.ai/api/v1/chat/completions",
                 {
                     model: model,
-                    messages: [{ role: "user", content: prompt }],
-                    max_tokens: 200
+                    messages: [
+                        { role: "user", content: prompt }
+                    ],
+                    max_tokens: 200,
+                    temperature: 0.6
                 },
                 {
                     headers: {
                         Authorization: `Bearer ${process.env.API_KEY}`,
                         "Content-Type": "application/json"
-                    }
+                    },
+                    timeout: 10000
                 }
             );
 
-            const result = response.data.choices[0].message.content;
+            const result = response.data?.choices?.[0]?.message?.content;
 
-            if (result) return result;
+            if (result) {
+                console.log("✅ Success with:", model);
+                return result;
+            }
 
         } catch (err) {
-            console.log("❌ Model failed:", model);
+            console.log("❌ Failed model:", model);
+            console.log(err.response?.data || err.message);
         }
     }
 
