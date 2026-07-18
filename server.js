@@ -42,7 +42,7 @@ async function callAI(prompt, system = "You are a helpful AI") {
 
 // ---------------- NOTES ----------------
 app.post("/notes", async (req, res) => {
-    try {
+    
         const { topic, exam = "General" } = req.body
 
         if (!topic) {
@@ -128,19 +128,20 @@ FORMAT:
                 headers: {
                     Authorization: `Bearer ${process.env.API_KEY}`,
                     "Content-Type": "application/json"
-                }
+                },
+                timeout: 15000
             }
         );
 
-        let raw = response.data.choices[0].message.content;
+        let raw = response.data?.choices?.[0]?.message?.content || "";
+
         console.log("RAW:", raw);
 
-        // 🔥 CLEAN RESPONSE
+        // CLEAN
         raw = raw.replace(/```json/g, "")
                  .replace(/```/g, "")
                  .trim();
 
-        // 🔥 JSON EXTRACT
         const start = raw.indexOf("{");
         const end = raw.lastIndexOf("}");
 
@@ -152,16 +153,18 @@ FORMAT:
 
         const parsed = JSON.parse(jsonString);
 
-        // 🔥 ALWAYS SEND STRING (IMPORTANT FOR ANDROID)
         res.json({
             result: JSON.stringify(parsed)
         });
 
     } catch (err) {
+        console.log("❌ QUIZ ERROR:", err.message);
 
-        console.log("❌ FINAL ERROR:", err.message);
-
-        // 🔥 HARD FALLBACK (NEVER EMPTY)
+        res.json({
+            result: JSON.stringify({
+                quiz: []
+            })
+        });
     }
 });
 
