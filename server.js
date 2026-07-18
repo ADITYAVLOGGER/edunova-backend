@@ -81,7 +81,7 @@ app.post("/quiz", async (req, res) => {
         const prompt = `
 Generate 5 MCQs on "${topic}"
 
-Return ONLY pure JSON (no text, no explanation, no markdown).
+Return ONLY pure JSON.
 
 FORMAT:
 {
@@ -99,39 +99,44 @@ FORMAT:
         const raw = await callAI(prompt, "Return only JSON. No text.")
 
         if (!raw) {
-            return res.json({ quiz: [] });
+            return res.json({ result: "" });
         }
 
-        // 🔥 SUPER CLEAN (IMPORTANT)
         let clean = raw
             .replace(/```json/g, "")
             .replace(/```/g, "")
             .replace(/[\r\n]+/g, " ")
             .trim();
 
-        // 🔥 JSON EXTRACT (IMPORTANT)
         const start = clean.indexOf("{");
         const end = clean.lastIndexOf("}");
 
         if (start === -1 || end === -1) {
-            return res.json({ quiz: [] });
+            return res.json({ result: "" });
         }
 
         clean = clean.substring(start, end + 1);
 
         try {
             const parsed = JSON.parse(clean);
-            res.json(parsed);
+
+            // 🔥 FINAL FIX
+            res.json({
+                result: JSON.stringify(parsed)
+            });
+
         } catch (e) {
-            console.log("❌ FINAL PARSE ERROR:", clean);
-            res.json({ quiz: [] });
+            console.log("❌ PARSE ERROR:", clean);
+            res.json({ result: "" });
         }
 
     } catch (err) {
         console.log("❌ SERVER ERROR:", err.message);
-        res.status(500).json({ quiz: [] });
+        res.status(500).json({ result: "" });
     }
 });
+
+
 // ---------------- DOUBT ----------------
 app.post("/doubt", async (req, res) => {
     try {
@@ -458,7 +463,7 @@ app.listen(3000, () => {
 // });
 
 
-// // ---------------- SERVER ----------------
-// app.listen(3000, () => {
-//     console.log("EduNova AI Backend running on port 3000")
-// })
+// ---------------- SERVER ----------------
+app.listen(3000, () => {
+    console.log("EduNova AI Backend running on port 3000")
+})
