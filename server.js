@@ -7,7 +7,7 @@ const app = express()
 app.use(cors())
 app.use(express.json())
 
-// 🔥 COMMON AI FUNCTION
+// 🔥 FIXED AI FUNCTION
 async function callAI(prompt, system = "You are a helpful AI") {
     try {
         const response = await axios.post(
@@ -19,7 +19,7 @@ async function callAI(prompt, system = "You are a helpful AI") {
                     { role: "user", content: prompt }
                 ],
                 temperature: 0.6,
-                max_tokens: 200
+                max_tokens: 300
             },
             {
                 headers: {
@@ -35,7 +35,7 @@ async function callAI(prompt, system = "You are a helpful AI") {
         return result || null
 
     } catch (err) {
-        console.log("AI ERROR:", err.response?.data || err.message)
+        console.log("❌ AI ERROR:", err.response?.data || err.message)
         return null
     }
 }
@@ -508,6 +508,6 @@ app.listen(3000, () => {
 
 
 // ---------------- SERVER ----------------
-app.listen(3000, () => {
-    console.log("EduNova AI Backend running on port 3000")
-})
+// app.listen(3000, () => {
+//     console.log("EduNova AI Backend running on port 3000")
+// })
