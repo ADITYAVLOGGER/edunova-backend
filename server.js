@@ -79,16 +79,14 @@ app.post("/quiz", async (req, res) => {
         const { topic } = req.body;
 
         if (!topic) {
-            return res.json({
-                result: JSON.stringify({ quiz: [] })
-            });
+            return sendFallback(res, topic);
         }
 
         const prompt = `
 Generate 5 MCQs on "${topic}"
 
 Rules:
-- 4 options only
+- 4 options
 - clear question
 - short explanation
 - exam focused
@@ -109,7 +107,6 @@ FORMAT:
 }
 `;
 
-        // 🔥 AI CALL
         const raw = await callAI(
             prompt,
             "You ONLY return valid JSON. No extra text."
@@ -119,26 +116,20 @@ FORMAT:
 
         // 🔥 अगर AI fail
         if (!raw) {
-            return res.json({
-                result: JSON.stringify({ quiz: [] })
-            });
+            return sendFallback(res, topic);
         }
 
-        // 🔥 CLEAN RESPONSE
         let clean = raw
             .replace(/```json/g, "")
             .replace(/```/g, "")
             .replace(/\n/g, " ")
             .trim();
 
-        // 🔥 JSON EXTRACT
         const start = clean.indexOf("{");
         const end = clean.lastIndexOf("}");
 
         if (start === -1 || end === -1) {
-            return res.json({
-                result: JSON.stringify({ quiz: [] })
-            });
+            return sendFallback(res, topic);
         }
 
         clean = clean.substring(start, end + 1);
@@ -146,40 +137,59 @@ FORMAT:
         try {
             const parsed = JSON.parse(clean);
 
-            // 🔥 FINAL OUTPUT (ANDROID COMPATIBLE)
+            // 🔥 अगर AI ने empty quiz दिया
+            if (!parsed.quiz || parsed.quiz.length === 0) {
+                return sendFallback(res, topic);
+            }
+
             return res.json({
                 result: JSON.stringify(parsed)
             });
 
         } catch (e) {
-
             console.log("❌ PARSE ERROR:", clean);
-
-            // 🔥 FALLBACK SAFE JSON
-            return res.json({
-                result: JSON.stringify({
-                    quiz: [
-                        {
-                            question: `Basic question on ${topic}?`,
-                            options: ["Option A", "Option B", "Option C", "Option D"],
-                            correct_answer_index: 0,
-                            explanation: "Try again",
-                            subTopic: topic
-                        }
-                    ]
-                })
-            });
+            return sendFallback(res, topic);
         }
 
     } catch (err) {
         console.log("❌ SERVER ERROR:", err.message);
-
-        // 🔥 NEVER SEND EMPTY
-        return res.json({
-            result: JSON.stringify({ quiz: [] })
-        });
+        return sendFallback(res, topic);
     }
 });
+
+function sendFallback(res, topic) {
+    return res.json({
+        result: JSON.stringify({
+            quiz: [
+                {
+                    question: `Basic question on ${topic}?`,
+                    options: [
+                        `${topic} option A`,
+                        `${topic} option B`,
+                        `${topic} option C`,
+                        `${topic} option D`
+                    ],
+                    correct_answer_index: 0,
+                    explanation: "This is a fallback question",
+                    subTopic: topic
+                },
+                {
+                    question: `Second question on ${topic}?`,
+                    options: [
+                        "Option 1",
+                        "Option 2",
+                        "Option 3",
+                        "Option 4"
+                    ],
+                    correct_answer_index: 1,
+                    explanation: "Fallback explanation",
+                    subTopic: topic
+                }
+            ]
+        })
+    });
+}
+
 
 // ---------------- DOUBT ----------------
 app.post("/doubt", async (req, res) => {
