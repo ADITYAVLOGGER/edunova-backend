@@ -59,7 +59,6 @@ app.use(express.json())
 //     }
 // });
 
-const axios = require("axios");
 
 const MODELS = [
     "qwen/qwen2.5-7b-instruct:free",
