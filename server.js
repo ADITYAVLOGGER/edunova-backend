@@ -157,7 +157,7 @@ FORMAT:
             result: JSON.stringify(parsed)
         });
 
-    } catch (err) {
+    }) catch (err) {
         console.log("❌ QUIZ ERROR:", err.message);
 
         res.json({
