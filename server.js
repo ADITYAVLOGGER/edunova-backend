@@ -78,10 +78,22 @@ app.post("/quiz", async (req, res) => {
     try {
         const { topic } = req.body;
 
+        if (!topic) {
+            return res.json({
+                result: JSON.stringify({ quiz: [] })
+            });
+        }
+
         const prompt = `
 Generate 5 MCQs on "${topic}"
 
-Return ONLY pure JSON.
+Rules:
+- 4 options only
+- clear question
+- short explanation
+- exam focused
+
+Return ONLY JSON
 
 FORMAT:
 {
@@ -90,29 +102,43 @@ FORMAT:
    "question":"...",
    "options":["A","B","C","D"],
    "correct_answer_index":0,
-   "explanation":"..."
+   "explanation":"...",
+   "subTopic":"..."
   }
  ]
 }
 `;
 
-        const raw = await callAI(prompt, "Return only JSON. No text.")
+        // 🔥 AI CALL
+        const raw = await callAI(
+            prompt,
+            "You ONLY return valid JSON. No extra text."
+        );
 
+        console.log("AI RAW:", raw);
+
+        // 🔥 अगर AI fail
         if (!raw) {
-            return res.json({ result: "" });
+            return res.json({
+                result: JSON.stringify({ quiz: [] })
+            });
         }
 
+        // 🔥 CLEAN RESPONSE
         let clean = raw
             .replace(/```json/g, "")
             .replace(/```/g, "")
-            .replace(/[\r\n]+/g, " ")
+            .replace(/\n/g, " ")
             .trim();
 
+        // 🔥 JSON EXTRACT
         const start = clean.indexOf("{");
         const end = clean.lastIndexOf("}");
 
         if (start === -1 || end === -1) {
-            return res.json({ result: "" });
+            return res.json({
+                result: JSON.stringify({ quiz: [] })
+            });
         }
 
         clean = clean.substring(start, end + 1);
@@ -120,22 +146,40 @@ FORMAT:
         try {
             const parsed = JSON.parse(clean);
 
-            // 🔥 FINAL FIX
-            res.json({
+            // 🔥 FINAL OUTPUT (ANDROID COMPATIBLE)
+            return res.json({
                 result: JSON.stringify(parsed)
             });
 
         } catch (e) {
+
             console.log("❌ PARSE ERROR:", clean);
-            res.json({ result: "" });
+
+            // 🔥 FALLBACK SAFE JSON
+            return res.json({
+                result: JSON.stringify({
+                    quiz: [
+                        {
+                            question: `Basic question on ${topic}?`,
+                            options: ["Option A", "Option B", "Option C", "Option D"],
+                            correct_answer_index: 0,
+                            explanation: "Try again",
+                            subTopic: topic
+                        }
+                    ]
+                })
+            });
         }
 
     } catch (err) {
         console.log("❌ SERVER ERROR:", err.message);
-        res.status(500).json({ result: "" });
+
+        // 🔥 NEVER SEND EMPTY
+        return res.json({
+            result: JSON.stringify({ quiz: [] })
+        });
     }
 });
-
 
 // ---------------- DOUBT ----------------
 app.post("/doubt", async (req, res) => {
