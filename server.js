@@ -79,7 +79,9 @@ app.post("/quiz", async (req, res) => {
         const { topic } = req.body;
 
         if (!topic) {
-            return sendFallback(res, topic);
+            return res.json({
+                quiz: []
+            });
         }
 
         const prompt = `
@@ -89,7 +91,7 @@ Rules:
 - 4 options
 - clear question
 - short explanation
-- exam focused
+- exam level
 
 Return ONLY JSON
 
@@ -107,88 +109,75 @@ FORMAT:
 }
 `;
 
-        const raw = await callAI(
-            prompt,
-            "You ONLY return valid JSON. No extra text."
+        const response = await axios.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            {
+                model: "openai/gpt-4o-mini",
+                messages: [
+                    { role: "system", content: "ONLY return JSON" },
+                    { role: "user", content: prompt }
+                ],
+                temperature: 0.5,
+                max_tokens: 400
+            },
+            {
+                headers: {
+                    Authorization: `Bearer ${process.env.API_KEY}`,
+                    "Content-Type": "application/json"
+                }
+            }
         );
 
-        console.log("AI RAW:", raw);
+        let raw = response.data.choices[0].message.content;
 
-        // 🔥 अगर AI fail
-        if (!raw) {
-            return sendFallback(res, topic);
-        }
+        console.log("RAW:", raw);
 
-        let clean = raw
+        // CLEAN
+        raw = raw
             .replace(/```json/g, "")
             .replace(/```/g, "")
-            .replace(/\n/g, " ")
             .trim();
 
-        const start = clean.indexOf("{");
-        const end = clean.lastIndexOf("}");
+        // JSON EXTRACT
+        const start = raw.indexOf("{");
+        const end = raw.lastIndexOf("}");
 
         if (start === -1 || end === -1) {
-            return sendFallback(res, topic);
+            return res.json({ quiz: [] });
         }
 
-        clean = clean.substring(start, end + 1);
+        const clean = raw.substring(start, end + 1);
 
         try {
             const parsed = JSON.parse(clean);
 
-            // 🔥 अगर AI ने empty quiz दिया
-            if (!parsed.quiz || parsed.quiz.length === 0) {
-                return sendFallback(res, topic);
-            }
-
-            return res.json({
-                result: JSON.stringify(parsed)
-            });
+            // 🔥 DIRECT JSON SEND (NO STRINGIFY)
+            return res.json(parsed);
 
         } catch (e) {
-            console.log("❌ PARSE ERROR:", clean);
-            return sendFallback(res, topic);
+            console.log("PARSE ERROR:", clean);
+
+            return res.json({
+                quiz: [
+                    {
+                        question: `Basic question on ${topic}?`,
+                        options: ["A", "B", "C", "D"],
+                        correct_answer_index: 0,
+                        explanation: "Fallback",
+                        subTopic: topic
+                    }
+                ]
+            });
         }
 
     } catch (err) {
-        console.log("❌ SERVER ERROR:", err.message);
-        return sendFallback(res, topic);
+        console.log("SERVER ERROR:", err.message);
+
+        return res.json({
+            quiz: []
+        });
     }
 });
-
-function sendFallback(res, topic) {
-    return res.json({
-        result: JSON.stringify({
-            quiz: [
-                {
-                    question: `Basic question on ${topic}?`,
-                    options: [
-                        `${topic} option A`,
-                        `${topic} option B`,
-                        `${topic} option C`,
-                        `${topic} option D`
-                    ],
-                    correct_answer_index: 0,
-                    explanation: "This is a fallback question",
-                    subTopic: topic
-                },
-                {
-                    question: `Second question on ${topic}?`,
-                    options: [
-                        "Option 1",
-                        "Option 2",
-                        "Option 3",
-                        "Option 4"
-                    ],
-                    correct_answer_index: 1,
-                    explanation: "Fallback explanation",
-                    subTopic: topic
-                }
-            ]
-        })
-    });
-}
 
 
 // ---------------- DOUBT ----------------
