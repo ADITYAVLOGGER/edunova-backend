@@ -17,25 +17,26 @@ app.post("/notes", async (req, res) => {
         }
 
         const prompt = `
-Generate detailed study notes on "${topic}" for ${exam}.
+Generate clear and exam-focused study notes on "${topic}" for ${exam}.
 
-- Start from basics
-- Explain concepts clearly
-- Add formulas and examples
+Rules:
+- Explain in simple Hinglish
 - Use bullet points
-- Keep it exam focused
-- 40–60 lines max
+- 8-10 important points only
+- Each point max 2 lines
+- Include formula if needed
+- Keep it short but complete
 `;
 
         const response = await axios.post(
             "https://openrouter.ai/api/v1/chat/completions",
             {
-                model: "openai/gpt-4o-mini",
+                model: "qwen/qwen2.5-7b-instruct:free",
                 messages: [
                     { role: "user", content: prompt }
                 ],
                 temperature: 0.6,
-                max_tokens: 800
+                max_tokens: 200
             },
             {
                 headers: {
@@ -81,8 +82,8 @@ app.post("/quiz", async (req, res) => {
             difficultyInstruction = "Exam-level tricky and deep conceptual questions";
         }
 
-        // 🔥 LIMIT NOTES (VERY IMPORTANT)
-        const shortNotes = notes.substring(0, 1200);
+        // 🔥 LIMIT NOTES (important for tokens)
+        const shortNotes = notes.substring(0, 800);
 
         const prompt = `
 Generate 5 MCQs on "${topic}"
@@ -92,7 +93,11 @@ Difficulty: ${difficultyInstruction}
 Use context:
 ${shortNotes}
 
-Return ONLY valid JSON.
+Rules:
+- Questions clear and exam-focused
+- 4 options only
+- Keep explanation short (1-2 lines)
+- Return ONLY JSON (no text, no markdown)
 
 FORMAT:
 {
@@ -111,7 +116,7 @@ FORMAT:
         const response = await axios.post(
             "https://openrouter.ai/api/v1/chat/completions",
             {
-                model: "openai/gpt-4o-mini", // ✅ FIXED MODEL
+                model: "qwen/qwen2.5-7b-instruct:free", 
                 messages: [
                     {
                         role: "system",
@@ -123,11 +128,11 @@ FORMAT:
                     }
                 ],
                 temperature: 0.5,
-                max_tokens: 800 // ✅ SAFE LIMIT
+                max_tokens: 300 
             },
             {
                 headers: {
-                    "Authorization": `Bearer ${process.env.API_KEY}`,
+                    Authorization: `Bearer ${process.env.API_KEY}`,
                     "Content-Type": "application/json"
                 }
             }
@@ -148,7 +153,7 @@ FORMAT:
         } catch (e) {
             console.log("❌ JSON Parse Failed:", raw);
 
-            // 🔥 FALLBACK (VERY IMPORTANT)
+            // 🔥 FALLBACK
             return res.json({
                 quiz: [
                     {
@@ -170,7 +175,6 @@ FORMAT:
         res.status(500).json({ error: "Quiz failed" });
     }
 });
-
 module.exports = app;
 
 // ---------------- DOUBT SOLVER ----------------
@@ -178,23 +182,43 @@ app.post("/doubt", async (req, res) => {
     try {
         const { question } = req.body;
 
-        const prompt = `
-Explain this question in simple steps with a short answer:
+        if (!question) {
+            return res.status(400).json({ error: "Question is required" });
+        }
 
-${question}
+        const prompt = `
+Explain the following question in simple steps:
+
+"${question}"
+
+Rules:
+- Use very simple Hinglish
+- Explain step by step
+- Keep answer short and clear
+- Max 5-6 steps
+- Give final answer clearly at the end
 `;
 
         const response = await axios.post(
             "https://openrouter.ai/api/v1/chat/completions",
             {
-                model: "openai/gpt-4o-mini",
-                messages: [{ role: "user", content: prompt }],
-                temperature: 0.5,
-                max_tokens: 300
+                model: "qwen/qwen2.5-7b-instruct:free", // ✅ FREE MODEL
+                messages: [
+                    {
+                        role: "system",
+                        content: "You are a helpful teacher who explains doubts simply."
+                    },
+                    {
+                        role: "user",
+                        content: prompt
+                    }
+                ],
+                temperature: 0.4,
+                max_tokens: 200 // ✅ SAFE LIMIT
             },
             {
                 headers: {
-                    "Authorization": `Bearer ${process.env.API_KEY}`,
+                    Authorization: `Bearer ${process.env.API_KEY}`,
                     "Content-Type": "application/json"
                 },
                 timeout: 10000
@@ -206,8 +230,11 @@ ${question}
         res.json({ result: reply });
 
     } catch (err) {
-        console.log(err.message);
-        res.status(500).json({ error: "Doubt failed" });
+        console.log("❌ DOUBT ERROR:", err.response?.data || err.message);
+
+        res.status(500).json({
+            error: "Doubt failed"
+        });
     }
 });
 
