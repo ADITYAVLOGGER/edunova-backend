@@ -73,15 +73,17 @@ Rules:
 })
 
 // ---------------- QUIZ ----------------
+
 app.post("/quiz", async (req, res) => {
     try {
-        const { topic } = req.body
+        const { topic } = req.body;
 
         const prompt = `
 Generate 5 MCQs on "${topic}"
 
-Return ONLY JSON:
+Return ONLY pure JSON (no text, no explanation, no markdown).
 
+FORMAT:
 {
  "quiz":[
   {
@@ -92,28 +94,44 @@ Return ONLY JSON:
   }
  ]
 }
-`
+`;
 
-        const raw = await callAI(prompt, "Return only valid JSON")
+        const raw = await callAI(prompt, "Return only JSON. No text.")
 
-        if (!raw) return res.json({ quiz: [] })
+        if (!raw) {
+            return res.json({ quiz: [] });
+        }
 
+        // 🔥 SUPER CLEAN (IMPORTANT)
         let clean = raw
             .replace(/```json/g, "")
             .replace(/```/g, "")
-            .trim()
+            .replace(/[\r\n]+/g, " ")
+            .trim();
 
-        try {
-            res.json(JSON.parse(clean))
-        } catch {
-            res.json({ quiz: [] })
+        // 🔥 JSON EXTRACT (IMPORTANT)
+        const start = clean.indexOf("{");
+        const end = clean.lastIndexOf("}");
+
+        if (start === -1 || end === -1) {
+            return res.json({ quiz: [] });
         }
 
-    } catch {
-        res.status(500).json({ error: "Quiz failed" })
-    }
-})
+        clean = clean.substring(start, end + 1);
 
+        try {
+            const parsed = JSON.parse(clean);
+            res.json(parsed);
+        } catch (e) {
+            console.log("❌ FINAL PARSE ERROR:", clean);
+            res.json({ quiz: [] });
+        }
+
+    } catch (err) {
+        console.log("❌ SERVER ERROR:", err.message);
+        res.status(500).json({ quiz: [] });
+    }
+});
 // ---------------- DOUBT ----------------
 app.post("/doubt", async (req, res) => {
     try {
