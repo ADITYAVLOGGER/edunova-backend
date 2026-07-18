@@ -80,30 +80,28 @@ app.post("/quiz", async (req, res) => {
 
         if (!topic) {
             return res.json({
-                quiz: []
+                result: JSON.stringify({ quiz: [] })
             });
         }
 
         const prompt = `
 Generate 5 MCQs on "${topic}"
 
-Rules:
-- 4 options
-- clear question
-- short explanation
-- exam level
-
-Return ONLY JSON
+STRICT RULES:
+- ONLY return JSON
+- NO explanation outside JSON
+- NO markdown
+- NO text before/after JSON
 
 FORMAT:
 {
  "quiz":[
   {
-   "question":"...",
+   "question":"string",
    "options":["A","B","C","D"],
    "correct_answer_index":0,
-   "explanation":"...",
-   "subTopic":"..."
+   "explanation":"string",
+   "subTopic":"string"
   }
  ]
 }
@@ -114,11 +112,17 @@ FORMAT:
             {
                 model: "openai/gpt-4o-mini",
                 messages: [
-                    { role: "system", content: "ONLY return JSON" },
-                    { role: "user", content: prompt }
+                    {
+                        role: "system",
+                        content: "You are a JSON generator. ONLY return valid JSON."
+                    },
+                    {
+                        role: "user",
+                        content: prompt
+                    }
                 ],
-                temperature: 0.5,
-                max_tokens: 400
+                temperature: 0.3,
+                max_tokens: 500
             },
             {
                 headers: {
@@ -129,53 +133,35 @@ FORMAT:
         );
 
         let raw = response.data.choices[0].message.content;
-
         console.log("RAW:", raw);
 
-        // CLEAN
-        raw = raw
-            .replace(/```json/g, "")
-            .replace(/```/g, "")
-            .trim();
+        // 🔥 CLEAN RESPONSE
+        raw = raw.replace(/```json/g, "")
+                 .replace(/```/g, "")
+                 .trim();
 
-        // JSON EXTRACT
+        // 🔥 JSON EXTRACT
         const start = raw.indexOf("{");
         const end = raw.lastIndexOf("}");
 
         if (start === -1 || end === -1) {
-            return res.json({ quiz: [] });
+            throw new Error("Invalid JSON from AI");
         }
 
-        const clean = raw.substring(start, end + 1);
+        const jsonString = raw.substring(start, end + 1);
 
-        try {
-            const parsed = JSON.parse(clean);
+        const parsed = JSON.parse(jsonString);
 
-            // 🔥 DIRECT JSON SEND (NO STRINGIFY)
-            return res.json(parsed);
-
-        } catch (e) {
-            console.log("PARSE ERROR:", clean);
-
-            return res.json({
-                quiz: [
-                    {
-                        question: `Basic question on ${topic}?`,
-                        options: ["A", "B", "C", "D"],
-                        correct_answer_index: 0,
-                        explanation: "Fallback",
-                        subTopic: topic
-                    }
-                ]
-            });
-        }
+        // 🔥 ALWAYS SEND STRING (IMPORTANT FOR ANDROID)
+        res.json({
+            result: JSON.stringify(parsed)
+        });
 
     } catch (err) {
-        console.log("SERVER ERROR:", err.message);
 
-        return res.json({
-            quiz: []
-        });
+        console.log("❌ FINAL ERROR:", err.message);
+
+        // 🔥 HARD FALLBACK (NEVER EMPTY)
     }
 });
 
