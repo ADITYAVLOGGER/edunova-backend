@@ -8,56 +8,93 @@ app.use(cors())
 app.use(express.json())
 
 // ---------------- NOTES ----------------
-app.post("/notes", async (req, res) => {
-    try {
-        const { topic, exam = "General" } = req.body;
+// app.post("/notes", async (req, res) => {
+//     try {
+//         const { topic, exam = "General" } = req.body;
 
-        if (!topic) {
-            return res.status(400).json({ error: "Topic is required" });
-        }
+//         if (!topic) {
+//             return res.status(400).json({ error: "Topic is required" });
+//         }
 
-        const prompt = `
-Generate clear and exam-focused study notes on "${topic}" for ${exam}.
+//         const prompt = `
+// Generate clear and exam-focused study notes on "${topic}" for ${exam}.
 
-Rules:
-- Explain in simple Hinglish
-- Use bullet points
-- 8-10 important points only
-- Each point max 2 lines
-- Include formula if needed
-- Keep it short but complete
-`;
+// Rules:
+// - Explain in simple Hinglish
+// - Use bullet points
+// - 8-10 important points only
+// - Each point max 2 lines
+// - Include formula if needed
+// - Keep it short but complete
+// `;
 
-        const response = await axios.post(
-            "https://openrouter.ai/api/v1/chat/completions",
-            {
-                model: "qwen/qwen2.5-7b-instruct:free",
-                messages: [
-                    { role: "user", content: prompt }
-                ],
-                temperature: 0.6,
-                max_tokens: 200
-            },
-            {
-                headers: {
-                    Authorization: `Bearer ${process.env.API_KEY}`,
-                    "Content-Type": "application/json"
+//         const response = await axios.post(
+//             "https://openrouter.ai/api/v1/chat/completions",
+//             {
+//                 model: "qwen/qwen2.5-7b-instruct:free",
+//                 messages: [
+//                     { role: "user", content: prompt }
+//                 ],
+//                 temperature: 0.6,
+//                 max_tokens: 200
+//             },
+//             {
+//                 headers: {
+//                     Authorization: `Bearer ${process.env.API_KEY}`,
+//                     "Content-Type": "application/json"
+//                 }
+//             }
+//         );
+
+//         const result = response.data.choices[0].message.content;
+
+//         res.json({ result });
+
+//     } catch (err) {
+//         console.error("NOTES ERROR:", err.response?.data || err.message);
+
+//         res.status(500).json({
+//             error: "Notes generation failed"
+//         });
+//     }
+// });
+
+const MODELS = [
+    "qwen/qwen2.5-7b-instruct:free",
+    "mistralai/mistral-7b-instruct:free"
+];
+
+async function generateNotes(prompt) {
+
+    for (let model of MODELS) {
+        try {
+            const response = await axios.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                {
+                    model: model,
+                    messages: [{ role: "user", content: prompt }],
+                    max_tokens: 200
+                },
+                {
+                    headers: {
+                        Authorization: `Bearer ${process.env.API_KEY}`,
+                        "Content-Type": "application/json"
+                    }
                 }
-            }
-        );
+            );
 
-        const result = response.data.choices[0].message.content;
+            const result = response.data.choices[0].message.content;
 
-        res.json({ result });
+            if (result) return result;
 
-    } catch (err) {
-        console.error("NOTES ERROR:", err.response?.data || err.message);
-
-        res.status(500).json({
-            error: "Notes generation failed"
-        });
+        } catch (err) {
+            console.log("❌ Model failed:", model);
+        }
     }
-});
+
+    return null;
+}
+
 
 // ---------------- QUIZ ----------------
 // const express = require("express");
