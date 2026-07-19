@@ -8,6 +8,7 @@ app.use(cors())
 app.use(express.json())
 
 // 🔥 FIXED AI FUNCTION
+// 🔥 FIXED AI FUNCTION WITH REQUIRED OPENROUTER HEADERS
 async function callAI(prompt, system = "You are a helpful AI") {
     try {
         const response = await axios.post(
@@ -23,15 +24,16 @@ async function callAI(prompt, system = "You are a helpful AI") {
             },
             {
                 headers: {
-                    Authorization: `Bearer ${process.env.API_KEY}`,
-                    "Content-Type": "application/json"
+                    "Authorization": `Bearer ${process.env.API_KEY}`,
+                    "Content-Type": "application/json",
+                    "HTTP-Referer": "http://localhost:3000", // OpenRouter requires this
+                    "X-Title": "EduNova App"                 // OpenRouter requires this
                 },
                 timeout: 10000
             }
         )
 
         const result = response.data?.choices?.[0]?.message?.content
-
         return result || null
 
     } catch (err) {
@@ -40,13 +42,13 @@ async function callAI(prompt, system = "You are a helpful AI") {
     }
 }
 
-// ---------------- NOTES ----------------
+// ---------------- NOTES ROUTE WITH TRY-CATCH ----------------
 app.post("/notes", async (req, res) => {
-    
+    try {
         const { topic, exam = "General" } = req.body
 
         if (!topic) {
-            return res.json({ result: "Enter topic" })
+            return res.status(400).json({ result: "Enter topic" })
         }
 
         const prompt = `
@@ -54,7 +56,7 @@ Generate short study notes on "${topic}" for ${exam}
 
 Rules:
 - 8 bullet points
-- simple Hinglish
+- simple English
 - each point 1-2 lines
 - exam focused
 `
@@ -66,9 +68,11 @@ Rules:
         }
 
         res.json({ result })
-
-    })
-
+    } catch (error) {
+        console.log("❌ NOTES ROUTE ERROR:", error.message)
+        res.status(500).json({ result: "⚠️ Server busy, try again" })
+    }
+})
 // ---------------- QUIZ ----------------
 
 app.post("/quiz", async (req, res) => {
