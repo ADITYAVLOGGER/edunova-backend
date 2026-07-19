@@ -1,14 +1,21 @@
 require("dotenv").config()
+
 const express = require("express")
 const axios = require("axios")
 const cors = require("cors")
 
 const app = express()
+
 app.use(cors())
 app.use(express.json())
 
-// 🔥 FIXED AI FUNCTION
-// 🔥 FIXED AI FUNCTION WITH REQUIRED OPENROUTER HEADERS
+// 🔥 CHECK API KEY ON START
+if (!process.env.API_KEY) {
+    console.log("❌ ERROR: API_KEY missing in .env file")
+    process.exit(1)
+}
+
+// ================= AI CALL FUNCTION =================
 async function callAI(prompt, system = "You are a helpful AI") {
     try {
         const response = await axios.post(
@@ -20,21 +27,20 @@ async function callAI(prompt, system = "You are a helpful AI") {
                     { role: "user", content: prompt }
                 ],
                 temperature: 0.6,
-                max_tokens: 300
+                max_tokens: 600
             },
             {
                 headers: {
                     "Authorization": `Bearer ${process.env.API_KEY}`,
                     "Content-Type": "application/json",
-                    "HTTP-Referer": "http://localhost:3000", // OpenRouter requires this
-                    "X-Title": "EduNova App"                 // OpenRouter requires this
+                    "HTTP-Referer": "http://localhost:3000",
+                    "X-Title": "EduNova App"
                 },
-                timeout: 10000
+                timeout: 20000
             }
         )
 
-        const result = response.data?.choices?.[0]?.message?.content
-        return result || null
+        return response.data?.choices?.[0]?.message?.content || null
 
     } catch (err) {
         console.log("❌ AI ERROR:", err.response?.data || err.message)
@@ -42,7 +48,12 @@ async function callAI(prompt, system = "You are a helpful AI") {
     }
 }
 
-// ---------------- NOTES ROUTE WITH TRY-CATCH ----------------
+// ================= HEALTH CHECK =================
+app.get("/", (req, res) => {
+    res.send("✅ EduNova Backend Running")
+})
+
+// ================= NOTES =================
 app.post("/notes", async (req, res) => {
     try {
         const { topic, exam = "General" } = req.body
@@ -68,21 +79,22 @@ Rules:
         }
 
         res.json({ result })
-    } catch (error) {
-        console.log("❌ NOTES ROUTE ERROR:", error.message)
-        res.status(500).json({ result: "⚠️ Server busy, try again" })
+
+    } catch (err) {
+        console.log("❌ NOTES ERROR:", err.message)
+        res.status(500).json({ result: "⚠️ Server error" })
     }
 })
-// ---------------- QUIZ ----------------
 
+// ================= QUIZ =================
 app.post("/quiz", async (req, res) => {
     try {
-        const { topic } = req.body;
+        const { topic } = req.body
 
         if (!topic) {
             return res.json({
                 result: JSON.stringify({ quiz: [] })
-            });
+            })
         }
 
         const prompt = `
@@ -92,7 +104,6 @@ STRICT RULES:
 - ONLY return JSON
 - NO explanation outside JSON
 - NO markdown
-- NO text before/after JSON
 
 FORMAT:
 {
@@ -106,85 +117,60 @@ FORMAT:
   }
  ]
 }
-`;
+`
 
-        const response = await axios.post(
-            "https://openrouter.ai/api/v1/chat/completions",
-            {
-                model: "openai/gpt-4o-mini",
-                messages: [
-                    {
-                        role: "system",
-                        content: "Return ONLY valid JSON."
-                    },
-                    {
-                        role: "user",
-                        content: prompt
-                    }
-                ],
-                temperature: 0.3,
-                max_tokens: 500
-            },
-            {
-                headers: {
-                    Authorization: `Bearer ${process.env.API_KEY}`,
-                    "Content-Type": "application/json"
-                },
-                timeout: 15000
-            }
-        );
+        const aiResponse = await callAI(prompt, "Return ONLY valid JSON.")
 
-        if (!response.data || !response.data.choices) {
-            throw new Error("No AI response");
+        if (!aiResponse) {
+            return res.json({
+                result: JSON.stringify({ quiz: [] })
+            })
         }
 
-        let raw = response.data.choices[0].message.content || "";
+        let raw = aiResponse
 
-        console.log("RAW:", raw);
+        console.log("RAW QUIZ:", raw)
 
         // CLEAN JSON
         raw = raw.replace(/```json/g, "")
                  .replace(/```/g, "")
-                 .trim();
+                 .trim()
 
-        const start = raw.indexOf("{");
-        const end = raw.lastIndexOf("}");
+        const start = raw.indexOf("{")
+        const end = raw.lastIndexOf("}")
 
         if (start === -1 || end === -1) {
-            throw new Error("Invalid JSON format");
+            throw new Error("Invalid JSON format")
         }
 
-        const jsonString = raw.substring(start, end + 1);
+        const jsonString = raw.substring(start, end + 1)
 
-        let parsed;
+        let parsed
 
         try {
-            parsed = JSON.parse(jsonString);
+            parsed = JSON.parse(jsonString)
         } catch (e) {
-            console.log("❌ JSON PARSE FAIL:", jsonString);
+            console.log("❌ JSON PARSE FAIL:", jsonString)
 
             return res.json({
                 result: JSON.stringify({ quiz: [] })
-            });
+            })
         }
 
         res.json({
             result: JSON.stringify(parsed)
-        });
+        })
 
     } catch (err) {
-
-        console.log("❌ QUIZ ERROR:", err.message);
+        console.log("❌ QUIZ ERROR:", err.message)
 
         res.json({
-            result: JSON.stringify({
-                quiz: []
-            })
-        });
+            result: JSON.stringify({ quiz: [] })
+        })
     }
-});
+})
 
-// ---------------- DOUBT ----------------
+// ================= DOUBT =================
 app.post("/doubt", async (req, res) => {
     try {
         const { question } = req.body
@@ -198,6 +184,7 @@ Explain this in simple steps:
 
 ${question}
 
+Rules:
 - simple Hinglish
 - step by step
 - short answer
@@ -211,15 +198,20 @@ ${question}
 
         res.json({ result })
 
-    } catch {
-        res.status(500).json({ error: "Doubt failed" })
+    } catch (err) {
+        console.log("❌ DOUBT ERROR:", err.message)
+        res.status(500).json({ result: "Error solving doubt" })
     }
 })
 
-// ---------------- SERVER ----------------
-app.listen(3000, () => {
-    console.log("🚀 EduNova backend running on port 3000")
+// ================= SERVER =================
+const PORT = process.env.PORT || 3000
+
+app.listen(PORT, () => {
+    console.log(`🚀 EduNova backend running on port ${PORT}`)
 })
+
+
 
 // require("dotenv").config()
 // const express = require("express")
