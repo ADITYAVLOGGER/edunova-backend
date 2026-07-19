@@ -287,7 +287,7 @@ Rules:
 });
 
 
----------------- SERVER ----------------
+// ---------------- SERVER ----------------
 app.listen(3000, () => {
     console.log("EduNova AI Backend running on port 3000")
 })
