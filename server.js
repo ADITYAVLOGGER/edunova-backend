@@ -114,7 +114,7 @@ FORMAT:
                 messages: [
                     {
                         role: "system",
-                        content: "You are a JSON generator. ONLY return valid JSON."
+                        content: "Return ONLY valid JSON."
                     },
                     {
                         role: "user",
@@ -133,11 +133,15 @@ FORMAT:
             }
         );
 
-        let raw = response.data?.choices?.[0]?.message?.content || "";
+        if (!response.data || !response.data.choices) {
+            throw new Error("No AI response");
+        }
+
+        let raw = response.data.choices[0].message.content || "";
 
         console.log("RAW:", raw);
 
-        // CLEAN
+        // CLEAN JSON
         raw = raw.replace(/```json/g, "")
                  .replace(/```/g, "")
                  .trim();
@@ -146,18 +150,29 @@ FORMAT:
         const end = raw.lastIndexOf("}");
 
         if (start === -1 || end === -1) {
-            throw new Error("Invalid JSON from AI");
+            throw new Error("Invalid JSON format");
         }
 
         const jsonString = raw.substring(start, end + 1);
 
-        const parsed = JSON.parse(jsonString);
+        let parsed;
+
+        try {
+            parsed = JSON.parse(jsonString);
+        } catch (e) {
+            console.log("❌ JSON PARSE FAIL:", jsonString);
+
+            return res.json({
+                result: JSON.stringify({ quiz: [] })
+            });
+        }
 
         res.json({
             result: JSON.stringify(parsed)
         });
 
-    }) catch (err) {
+    } catch (err) {
+
         console.log("❌ QUIZ ERROR:", err.message);
 
         res.json({
@@ -167,7 +182,6 @@ FORMAT:
         });
     }
 });
-
 
 // ---------------- DOUBT ----------------
 app.post("/doubt", async (req, res) => {
