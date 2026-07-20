@@ -48,7 +48,7 @@ app.post("/quiz", async (req, res) => {
         const response = await axios.post(
            "https://api.groq.com/openai/v1/chat/completions",
             {
-                model: "openai/gpt-3.5-turbo",
+                model: "llama3-8b-8192",
                 messages: [{
                     role: "user",
                     content: `Generate 5 MCQ quiz on ${topic} with:
@@ -57,7 +57,7 @@ app.post("/quiz", async (req, res) => {
             },
             {
                 headers: {
-                    "Authorization": `Bearer ${process.env.API_KEY}`,
+                    "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
                     "Content-Type": "application/json"
                 }
             }
@@ -72,33 +72,6 @@ app.post("/quiz", async (req, res) => {
 
 
 // ---------------- STUDY PLAN ----------------
-app.post("/plan", async (req, res) => {
-    try {
-        const { examDate, subjects } = req.body
-
-        const response = await axios.post(
-            "https://api.groq.com/openai/v1/chat/completions",
-            {
-                model: "openai/gpt-3.5-turbo",
-                messages: [{
-                    role: "user",
-                    content: `Create a daily study plan from today to ${examDate} for subjects: ${subjects}`
-                }]
-            },
-            {
-                headers: {
-                    "Authorization": `Bearer ${process.env.API_KEY}`,
-                    "Content-Type": "application/json"
-                }
-            }
-        )
-
-        res.json({ result: response.data.choices[0].message.content })
-
-    } catch (err) {
-        res.status(500).json({ error: "Plan failed" })
-    }
-})
 
 
 // ---------------- DOUBT SOLVER ----------------
@@ -109,7 +82,7 @@ app.post("/doubt", async (req, res) => {
         const response = await axios.post(
             "https://api.groq.com/openai/v1/chat/completions",
             {
-                model: "openai/gpt-3.5-turbo",
+                model: "llama3-8b-8192",
                 messages: [{
                     role: "user",
                     content: `Solve this doubt in simple student friendly way: ${question}`
@@ -117,7 +90,7 @@ app.post("/doubt", async (req, res) => {
             },
             {
                 headers: {
-                    "Authorization": `Bearer ${process.env.API_KEY}`,
+                    "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
                     "Content-Type": "application/json"
                 }
             }
