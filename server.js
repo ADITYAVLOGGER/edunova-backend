@@ -16,7 +16,7 @@ async function callAI(prompt) {
         try {
 
             console.log("📤 Calling AI... Attempt:", attempt);
-
+console.log("KEY:", process.env.API_KEY);
             const response = await axios.post(
                 "https://openrouter.ai/api/v1/chat/completions",
                 {
@@ -62,7 +62,6 @@ async function callAI(prompt) {
 app.post("/notes", async (req, res) => {
 
     const { topic, exam } = req.body;
-console.log("API KEY:", process.env.API_KEY);
     console.log("📥 REQUEST:", topic, exam);
 
     if (!topic) {
