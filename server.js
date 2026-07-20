@@ -11,94 +11,71 @@ app.use(express.json())
 app.post("/notes", async (req, res) => {
     try {
 
-        const { topic, exam = "General" } = req.body;
+        const { topic, subject, exam, level } = req.body
 
-        if (!topic) {
-            return res.status(400).json({ error: "Topic is required" });
-        }
+        // 🔥 fallback values (safety)
+        const safeExam = exam || "General"
+        const safeSubject = subject || "General"
+        const safeLevel = level || "Beginner"
 
+        // 🔥 SMART PROMPT (IMPORTANT)
         const prompt = `
+Create ${safeLevel} level exam-ready notes.
+
+Exam: ${safeExam}
+Subject: ${safeSubject}
 Topic: ${topic}
-Exam: ${exam}
 
-TASK:
-Teach this topic like a FULL CHAPTER from a textbook.
+Rules:
+- Use bullet points
+- Keep it simple and easy to revise
+- Include formulas if needed
+- No long paragraphs
+- No extra explanation
 
-DEPTH RULE:
-- Competitive exams → deep + conceptual + reasoning + derivations
-- School exams → simple but still detailed
+Format:
+📌 Definition
+📌 Key Points
+📌 Formula (if any)
+📌 Example (if needed)
+`
 
-IMPORTANT:
-- Do NOT summarize
-- Do NOT shorten explanation
-- Explain everything step-by-step from basics
-
-CONTENT REQUIREMENTS:
-You MUST cover:
-
-1. Basic Concept (start from zero)
-2. Full Explanation of all ideas
-3. All types / classifications
-4. Why the concept works (logic)
-5. Real-life examples
-6. All formulas (with explanation + units)
-7. Common mistakes
-8. Important exam tricks
-
-STRICT RULES:
-- Minimum 120+ lines
-- No skipping any concept
-- Each point must be explained clearly
-- Avoid 1-line answers
-- Make it feel like reading a full chapter
-
-STYLE:
-- Natural flow like a teacher explaining
-- Use paragraphs + bullet points
-- Keep it readable and engaging
-`;
         const response = await axios.post(
-             "https://api.groq.com/openai/v1/chat/completions",
+             "https://api.groq.com/openai/v1/chat/completions"
             {
-                model: "llama3-8b-8192",
+               model: "llama3-8b-8192",
                 messages: [
-                    {
-                        role: "system",
-                        content: "You are an expert teacher who creates detailed study notes."
-                    },
                     {
                         role: "user",
                         content: prompt
                     }
-                ],
-                temperature: 0.6,
-                max_tokens: 3000
+                ]
             },
             {
                 headers: {
-                    Authorization: `Bearer ${process.env.API_KEY}`,
+                    "Authorization": `Bearer ${process.env.API_KEY}`,
                     "Content-Type": "application/json"
                 }
             }
-        );
+        )
 
-        let result = response.data.choices[0].message.content;
+        const result = response.data.choices[0].message.content
 
-        // 🔥 CLEAN RESPONSE (important)
-        result = result
-            .replace(/```/g, "")
-            .replace(/json/gi, "")
-            .trim();
-
-        res.json({ result });
+        res.json({
+            result,
+            meta: {
+                exam: safeExam,
+                subject: safeSubject,
+                topic: topic,
+                level: safeLevel
+            }
+        })
 
     } catch (err) {
-        console.error("FULL ERROR:", err.response?.data || err.message);
-        res.status(500).json({
-            error: "Notes generation failed"
-        });
+        console.error(err.response?.data || err.message)
+        res.status(500).json({ error: "Notes failed" })
     }
-});
+})
 
 
 // ---------------- QUIZ ----------------
