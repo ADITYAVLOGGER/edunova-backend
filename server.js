@@ -62,7 +62,7 @@ async function callAI(prompt) {
 app.post("/notes", async (req, res) => {
 
     const { topic, exam } = req.body;
-
+console.log("API KEY:", process.env.API_KEY);
     console.log("📥 REQUEST:", topic, exam);
 
     if (!topic) {
