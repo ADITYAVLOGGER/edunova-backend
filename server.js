@@ -40,9 +40,10 @@ async function callGroq(prompt) {
         return text;
 
     } catch (err) {
-        console.log("❌ GROQ ERROR:", err.response?.data || err.message);
-        return null;
-    }
+    console.log("❌ FULL ERROR:", JSON.stringify(err.response?.data, null, 2));
+    console.log("❌ MESSAGE:", err.message);
+    return null;
+}
 }
 
 
