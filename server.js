@@ -24,12 +24,15 @@ async function callAI(prompt) {
                 max_tokens: 500 // Ab yeh 500 tokens par bhi error nahi dega
             },
             {
-                headers: {
-                    "Authorization": `Bearer ${process.env.API_KEY}`,
-                    "Content-Type": "application/json"
-                },
-                timeout: 20000
-            }
+    headers: {
+        "Authorization": `Bearer ${process.env.API_KEY}`,
+        "Content-Type": "application/json",
+        // 👇 Yahaan Render ka apna URL daal do, ya fir dummy hi rehne do. Dono chalenge!
+        "HTTP-Referer": "https://edunova-app.com", 
+        "X-Title": "EduNova App"
+    },
+    timeout: 25000
+}
         );
     
 
