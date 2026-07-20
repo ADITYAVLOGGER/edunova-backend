@@ -15,12 +15,12 @@ async function callAI(prompt) {
         const response = await axios.post(
             "https://openrouter.ai/api/v1/chat/completions",
             {
-                model: "openai/gpt-3.5-turbo", // 🔥 stable model
+                model: "openai/gpt-4o-mini", // 🔥 stable model
                 messages: [
                     { role: "user", content: prompt }
                 ],
                 temperature: 0.7,
-                max_tokens: 500
+                max_tokens: 70
             },
             {
                 headers: {
