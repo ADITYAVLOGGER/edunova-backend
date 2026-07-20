@@ -165,6 +165,18 @@ ${question}
     res.json({ result });
 });
 
+app.get("/test", async (req, res) => {
+
+    const result = await callAI("Hello, test message");
+
+    if (result) {
+        res.send("✅ API WORKING: " + result);
+    } else {
+        res.send("❌ API NOT WORKING");
+    }
+
+});
+
 // ================= SERVER =================
 app.listen(PORT, () => {
     console.log(`🚀 Server running on ${PORT}`);
