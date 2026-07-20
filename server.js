@@ -93,8 +93,7 @@ STYLE:
         res.json({ result });
 
     } catch (err) {
-        console.error("NOTES ERROR:", err.message);
-
+        console.error("FULL ERROR:", err.response?.data || err.message);
         res.status(500).json({
             error: "Notes generation failed"
         });
