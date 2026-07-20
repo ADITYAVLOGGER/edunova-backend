@@ -10,6 +10,12 @@ app.use(express.json());
 const PORT = 3000;
 
 // 🔥 FIXED AI FUNCTION WITH RETRY
+
+app.get("/", (req, res) => {
+    console.log("🔥 HOME HIT");
+    res.send("Server working");
+});
+
 async function callAI(prompt) {
 
     for (let attempt = 1; attempt <= 2; attempt++) {
