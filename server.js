@@ -10,144 +10,122 @@ app.use(express.json());
 
 const PORT = 3000;
 
-// 🔥 SAFE AI FUNCTION (Max Tokens increased for complete notes)
-async function callAI(prompt) {
-    try {
-        const response = await axios.post(
-            "https://api.groq.com/openai/v1/chat/completions",
-            {
-                model: "llama3-8b-8192",
-                messages: [
-                    { role: "user", content: prompt }
-                ],
-                temperature: 0.7,
-                max_tokens: 500
-            },
-            {
-                headers: {
-                    "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
-                    "Content-Type": "application/json"
-                },
-                timeout: 30000
-            }
-        );
-
-        const text = response?.data?.choices?.[0]?.message?.content;
-
-        if (!text) {
-            console.log("❌ Empty response");
-            return null;
-        }
-
-        return text;
-
-    } catch (err) {
-        console.log("❌ GROQ ERROR:", err.response?.data || err.message);
-        return null;
-    }
-}
-
 // ================= NOTES =================
 app.post("/notes", async (req, res) => {
     try {
-        const { topic, exam } = req.body;
-        console.log("📥 REQUEST:", topic, exam);
+        const { topic } = req.body
 
-        if (!topic) {
-            return res.json({ result: "Enter topic" });
-        }
+        const response = await axios.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            {
+               model: "llama3-8b-8192",
+                messages: [{
+                    role: "user",
+                    content: `Create simple exam-ready notes in points for: ${topic}`
+                }]
+            },
+            {
+               headers: {
+                    "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
+                    "Content-Type": "application/json"
+                }
+            }
+        )
 
-        const prompt = `
-Generate study notes:
-Topic: ${topic}
-Exam: ${exam}
-
-Rules:
-- Hinglish
-- 6-8 bullet points
-- Short + exam focused
-`;
-
-        const result = await callAI(prompt);
-
-        if (!result) {
-            return res.json({
-                result: `⚠️ Server busy. Try again.\n\nTopic: ${topic}`
-            });
-        }
-
-        return res.json({ result });
+        res.json({ result: response.data.choices[0].message.content })
 
     } catch (err) {
-        console.log("❌ NOTES ERROR:", err);
-        return res.json({
-            result: "⚠️ Notes generation failed, try again"
-        });
+        res.status(500).json({ error: "Notes failed" })
     }
-});
+})
 
-// ================= QUIZ =================
+
+// ---------------- QUIZ ----------------
 app.post("/quiz", async (req, res) => {
-    const { topic } = req.body;
-    const prompt = `
-Generate 5 MCQs on "${topic}"
-
-Return JSON only:
-{
- "quiz":[
-  {
-   "question":"string",
-   "options":["A","B","C","D"],
-   "correct_answer_index":0,
-   "explanation":"string"
-  }
- ]
-}
-`;
-
-    const raw = await callAI(prompt);
-    if (!raw) return res.json({ quiz: [] });
-
     try {
-        const clean = raw.replace(/```json/g, "").replace(/```/g, "").trim();
-        return res.json(JSON.parse(clean));
-    } catch {
-        return res.json({ quiz: [] });
-    }
-});
+        const { topic } = req.body
 
-// ================= DOUBT =================
+        const response = await axios.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            {
+                model: "openai/gpt-3.5-turbo",
+                messages: [{
+                    role: "user",
+                    content: `Generate 5 MCQ quiz on ${topic} with:
+                    question, 4 options, correct answer index, and explanation in JSON format`
+                }]
+            },
+            {
+                headers: {
+                    "Authorization": `Bearer ${process.env.API_KEY}`,
+                    "Content-Type": "application/json"
+                }
+            }
+        )
+
+        res.json({ result: response.data.choices[0].message.content })
+
+    } catch (err) {
+        res.status(500).json({ error: "Quiz failed" })
+    }
+})
+
+
+// ---------------- STUDY PLAN ----------------
+app.post("/plan", async (req, res) => {
+    try {
+        const { examDate, subjects } = req.body
+
+        const response = await axios.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            {
+                model: "openai/gpt-3.5-turbo",
+                messages: [{
+                    role: "user",
+                    content: `Create a daily study plan from today to ${examDate} for subjects: ${subjects}`
+                }]
+            },
+            {
+                headers: {
+                    "Authorization": `Bearer ${process.env.API_KEY}`,
+                    "Content-Type": "application/json"
+                }
+            }
+        )
+
+        res.json({ result: response.data.choices[0].message.content })
+
+    } catch (err) {
+        res.status(500).json({ error: "Plan failed" })
+    }
+})
+
+
+// ---------------- DOUBT SOLVER ----------------
 app.post("/doubt", async (req, res) => {
-    const { question } = req.body;
-    if (!question) {
-        return res.status(400).json({ result: "Enter question" });
+    try {
+        const { question } = req.body
+
+        const response = await axios.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            {
+                model: "openai/gpt-3.5-turbo",
+                messages: [{
+                    role: "user",
+                    content: `Solve this doubt in simple student friendly way: ${question}`
+                }]
+            },
+            {
+                headers: {
+                    "Authorization": `Bearer ${process.env.API_KEY}`,
+                    "Content-Type": "application/json"
+                }
+            }
+        )
+
+        res.json({ result: response.data.choices[0].message.content })
+
+    } catch (err) {
+        res.status(500).json({ error: "Doubt failed" })
     }
-
-    const prompt = `
-Explain in simple Hinglish:
-${question}
-- step by step
-- short
-`;
-
-    const result = await callAI(prompt);
-    if (!result) {
-        return res.json({ result: "⚠️ Try again later" });
-    }
-    res.json({ result });
-});
-
-// ================= TEST =================
-app.get("/test", async (req, res) => {
-    const result = await callAI("Hello, test message");
-    if (result) {
-        res.send("✅ API WORKING: " + result);
-    } else {
-        res.send("❌ API NOT WORKING");
-    }
-});
-
-// ================= SERVER (ONLY ONE LISTENER) =================
-app.listen(PORT, () => {
-    console.log(`🚀 Server running on port ${PORT}`);
-});
+})
