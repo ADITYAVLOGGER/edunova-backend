@@ -1,5 +1,5 @@
 require("dotenv").config();
-console.log("CHECK ENV:", process.env.GROQ_API_KEY);
+console.log("CHECK ENV:", process.env.API_KEY);
 const express = require("express");
 const axios = require("axios");
 const cors = require("cors");
@@ -26,7 +26,7 @@ app.post("/notes", async (req, res) => {
             },
             {
                headers: {
-                    "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
+                    "Authorization": `Bearer ${process.env.API_KEY}`,
                     "Content-Type": "application/json"
                 }
             }
@@ -57,7 +57,7 @@ app.post("/quiz", async (req, res) => {
             },
             {
                 headers: {
-                    "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
+                    "Authorization": `Bearer ${process.env.API_KEY}`,
                     "Content-Type": "application/json"
                 }
             }
@@ -90,7 +90,7 @@ app.post("/doubt", async (req, res) => {
             },
             {
                 headers: {
-                    "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
+                    "Authorization": `Bearer ${process.env.API_KEY}`,
                     "Content-Type": "application/json"
                 }
             }
