@@ -10,41 +10,41 @@ app.use(express.json());
 const PORT = 3000;
 
 // 🔥 SAFE AI FUNCTION (Max Tokens increased for complete notes)
-async function callAI(prompt) {
+async function callAI(prompt, retry = 3) {
     try {
         const response = await axios.post(
             "https://openrouter.ai/api/v1/chat/completions",
             {
-                // 🔥 Badalkar free model kar diya
-                model:"openchat/openchat-7b",
-                messages: [
-                    { role: "user", content: prompt }
-                ],
+                model: "openchat/openchat-7b",
+                messages: [{ role: "user", content: prompt }],
                 temperature: 0.7,
-                max_tokens: 500 // Ab yeh 500 tokens par bhi error nahi dega
+                max_tokens: 400
             },
             {
-    headers: {
-        "Authorization": `Bearer ${process.env.API_KEY}`,
-        "Content-Type": "application/json",
-        // 👇 Yahaan Render ka apna URL daal do, ya fir dummy hi rehne do. Dono chalenge!
-        "HTTP-Referer": "https://edunova-app.com", 
-        "X-Title": "EduNova App"
-    },
-    timeout: 25000
-}
+                headers: {
+                    "Authorization": `Bearer ${process.env.API_KEY}`,
+                    "Content-Type": "application/json"
+                },
+                timeout: 60000 // 🔥 60 sec
+            }
         );
-    
 
-        if (!response.data || !response.data.choices) {
-            console.log("❌ INVALID RESPONSE:", response.data);
-            return null;
-        }
+        const content = response?.data?.choices?.[0]?.message?.content;
 
-        return response.data.choices[0].message.content;
+        if (!content) throw new Error("Empty response");
+
+        return content;
 
     } catch (err) {
         console.log("❌ AI ERROR:", err.response?.data || err.message);
+
+        // 🔁 RETRY LOGIC
+        if (retry > 0) {
+            console.log("🔁 Retrying...", retry);
+            await new Promise(r => setTimeout(r, 2000));
+            return callAI(prompt, retry - 1);
+        }
+
         return null;
     }
 }
