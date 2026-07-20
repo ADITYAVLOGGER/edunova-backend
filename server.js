@@ -16,7 +16,7 @@ async function callAI(prompt) {
             "https://openrouter.ai/api/v1/chat/completions",
             {
                 // 🔥 Badalkar free model kar diya
-                model: "meta-llama/llama-3-8b-instruct:free",
+                model:"openchat/openchat-7b",
                 messages: [
                     { role: "user", content: prompt }
                 ],
