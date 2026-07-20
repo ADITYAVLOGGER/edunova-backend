@@ -16,7 +16,7 @@ app.post("/notes", async (req, res) => {
         const { topic } = req.body
 
         const response = await axios.post(
-            "https://openrouter.ai/api/v1/chat/completions",
+            "https://api.groq.com/openai/v1/chat/completions",
             {
                model: "llama3-8b-8192",
                 messages: [{
@@ -46,7 +46,7 @@ app.post("/quiz", async (req, res) => {
         const { topic } = req.body
 
         const response = await axios.post(
-            "https://openrouter.ai/api/v1/chat/completions",
+           "https://api.groq.com/openai/v1/chat/completions",
             {
                 model: "openai/gpt-3.5-turbo",
                 messages: [{
@@ -77,7 +77,7 @@ app.post("/plan", async (req, res) => {
         const { examDate, subjects } = req.body
 
         const response = await axios.post(
-            "https://openrouter.ai/api/v1/chat/completions",
+            "https://api.groq.com/openai/v1/chat/completions",
             {
                 model: "openai/gpt-3.5-turbo",
                 messages: [{
@@ -107,7 +107,7 @@ app.post("/doubt", async (req, res) => {
         const { question } = req.body
 
         const response = await axios.post(
-            "https://openrouter.ai/api/v1/chat/completions",
+            "https://api.groq.com/openai/v1/chat/completions",
             {
                 model: "openai/gpt-3.5-turbo",
                 messages: [{
