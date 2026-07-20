@@ -10,41 +10,38 @@ app.use(express.json());
 const PORT = 3000;
 
 // 🔥 SAFE AI FUNCTION (Max Tokens increased for complete notes)
-async function callAI(prompt, retry = 3) {
+async function callAI(prompt) {
     try {
         const response = await axios.post(
-            "https://openrouter.ai/api/v1/chat/completions",
+            "https://api.groq.com/openai/v1/chat/completions",
             {
-                model: "openchat/openchat-7b",
-                messages: [{ role: "user", content: prompt }],
+                model: "llama3-8b-8192",
+                messages: [
+                    { role: "user", content: prompt }
+                ],
                 temperature: 0.7,
-                max_tokens: 400
+                max_tokens: 500
             },
             {
                 headers: {
-                    "Authorization": `Bearer ${process.env.API_KEY}`,
+                    "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
                     "Content-Type": "application/json"
                 },
-                timeout: 60000 // 🔥 60 sec
+                timeout: 30000
             }
         );
 
-        const content = response?.data?.choices?.[0]?.message?.content;
+        const text = response?.data?.choices?.[0]?.message?.content;
 
-        if (!content) throw new Error("Empty response");
-
-        return content;
-
-    } catch (err) {
-        console.log("❌ AI ERROR:", err.response?.data || err.message);
-
-        // 🔁 RETRY LOGIC
-        if (retry > 0) {
-            console.log("🔁 Retrying...", retry);
-            await new Promise(r => setTimeout(r, 2000));
-            return callAI(prompt, retry - 1);
+        if (!text) {
+            console.log("❌ Empty response");
+            return null;
         }
 
+        return text;
+
+    } catch (err) {
+        console.log("❌ GROQ ERROR:", err.response?.data || err.message);
         return null;
     }
 }
