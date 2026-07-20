@@ -19,31 +19,38 @@ async function callAI(prompt) {
                 messages: [
                     {
                         role: "system",
-                        content: "You are a helpful study assistant."
+                        content: "You are a smart study assistant. Give clear, exam-focused notes."
                     },
                     {
                         role: "user",
                         content: prompt
                     }
                 ],
-                temperature: 0.6,
-                max_tokens: 300
+                temperature: 0.7,
+                max_tokens: 800   // 🔥 IMPORTANT (300 se bahut kam aa raha tha)
             },
             {
                 headers: {
                     "Authorization": `Bearer ${process.env.API_KEY}`,
                     "Content-Type": "application/json",
-                    "HTTP-Referer": "https://edunova.app", // 🔥 IMPORTANT
+                    "HTTP-Referer": "https://edunova.app",
                     "X-Title": "EduNova AI"
                 },
-                timeout: 15000
+                timeout: 30000 // 🔥 increase timeout
             }
         );
 
-        return response.data?.choices?.[0]?.message?.content || null;
+        const text = response.data?.choices?.[0]?.message?.content;
+
+        if (!text) {
+            console.log("❌ EMPTY AI RESPONSE");
+            return null;
+        }
+
+        return text;
 
     } catch (err) {
-        console.log("❌ AI ERROR:", err.response?.data || err.message);
+        console.log("❌ AI ERROR FULL:", err.response?.data || err.message);
         return null;
     }
 }
