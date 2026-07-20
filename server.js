@@ -9,104 +9,112 @@ app.use(express.json());
 
 const PORT = 3000;
 
-// 🔥 COMMON AI CALL FUNCTION
+// 🔥 FIXED AI FUNCTION WITH RETRY
 async function callAI(prompt) {
-    try {
-        const response = await axios.post(
-            "https://openrouter.ai/api/v1/chat/completions",
-            {
-                model: "openai/gpt-4o-mini",
-                messages: [
-                    {
-                        role: "system",
-                        content: "You are a smart study assistant. Give clear, exam-focused notes."
-                    },
-                    {
-                        role: "user",
-                        content: prompt
-                    }
-                ],
-                temperature: 0.7,
-                max_tokens: 800   // 🔥 IMPORTANT (300 se bahut kam aa raha tha)
-            },
-            {
-                headers: {
-                    "Authorization": `Bearer ${process.env.API_KEY}`,
-                    "Content-Type": "application/json",
-                    "HTTP-Referer": "https://edunova.app",
-                    "X-Title": "EduNova AI"
+
+    for (let attempt = 1; attempt <= 2; attempt++) {
+        try {
+
+            console.log("📤 Calling AI... Attempt:", attempt);
+
+            const response = await axios.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                {
+                    model: "mistralai/mistral-7b-instruct", // 🔥 more stable free model
+                    messages: [
+                        {
+                            role: "system",
+                            content: "You are a smart study assistant. Give short Hinglish notes."
+                        },
+                        {
+                            role: "user",
+                            content: prompt
+                        }
+                    ],
+                    temperature: 0.7,
+                    max_tokens: 700
                 },
-                timeout: 30000 // 🔥 increase timeout
+                {
+                    headers: {
+                        "Authorization": `Bearer ${process.env.API_KEY}`,
+                        "Content-Type": "application/json"
+                    },
+                    timeout: 20000
+                }
+            );
+
+            const text = response.data?.choices?.[0]?.message?.content;
+
+            if (text) {
+                console.log("✅ AI SUCCESS");
+                return text;
             }
-        );
 
-        const text = response.data?.choices?.[0]?.message?.content;
-
-        if (!text) {
-            console.log("❌ EMPTY AI RESPONSE");
-            return null;
+        } catch (err) {
+            console.log("❌ AI ERROR:", err.response?.data || err.message);
         }
-
-        return text;
-
-    } catch (err) {
-        console.log("❌ AI ERROR FULL:", err.response?.data || err.message);
-        return null;
     }
+
+    return null;
 }
 
 // ================= NOTES =================
 app.post("/notes", async (req, res) => {
-    try {
-        const { topic, exam } = req.body;
 
-        if (!topic) {
-            return res.status(400).json({ result: "Enter topic" });
-        }
+    const { topic, exam } = req.body;
 
-        const prompt = `
-Generate study notes for:
+    console.log("📥 REQUEST:", topic, exam);
+
+    if (!topic) {
+        return res.status(400).json({ result: "Enter topic" });
+    }
+
+    const prompt = `
+Generate study notes:
 
 Topic: ${topic}
 Exam: ${exam}
 
 Rules:
-- Hinglish language
-- 8 bullet points
-- Each point 1-2 lines
-- Simple + exam focused
-- Include formula if needed
+- Hinglish
+- 6-8 bullet points
+- Short + exam focused
 `;
 
-        const result = await callAI(prompt);
+    const result = await callAI(prompt);
 
-        if (!result) {
-            return res.status(200).json({
-                result: "⚠️ Server busy, try again"
-            });
-        }
+    // 🔥 FALLBACK (IMPORTANT)
+    if (!result) {
+        return res.status(200).json({
+            result: `
+⚠️ Server busy but don't stop studying 💪
 
-        res.status(200).json({ result });
+Topic: ${topic}
 
-    } catch (err) {
-        console.log("❌ NOTES ERROR:", err.message);
+Quick Notes:
+• Definition samjho
+• Important formulas yaad karo
+• Concepts clear rakho
+• PYQs practice karo
+• Short revision notes banao
 
-        res.status(500).json({
-            result: "⚠️ Notes generation failed"
+👉 Retry after few seconds for detailed notes
+`
         });
     }
+
+    res.json({ result });
 });
 
 // ================= QUIZ =================
 app.post("/quiz", async (req, res) => {
-    try {
-        const { topic } = req.body;
 
-        const prompt = `
+    const { topic } = req.body;
+
+    const prompt = `
 Generate 5 MCQs on "${topic}"
 
-Return ONLY JSON:
-
+Return JSON only:
 {
  "quiz":[
   {
@@ -119,281 +127,46 @@ Return ONLY JSON:
 }
 `;
 
-        const raw = await callAI(prompt);
+    const raw = await callAI(prompt);
 
-        if (!raw) {
-            return res.json({ quiz: [] });
-        }
+    if (!raw) return res.json({ quiz: [] });
 
-        let clean = raw.replace(/```json/g, "").replace(/```/g, "").trim();
-
-        try {
-            const parsed = JSON.parse(clean);
-            return res.json(parsed);
-        } catch {
-            return res.json({ quiz: [] });
-        }
-
-    } catch (err) {
-        console.log("❌ QUIZ ERROR:", err.message);
-        res.json({ quiz: [] });
+    try {
+        const clean = raw.replace(/```json/g, "").replace(/```/g, "").trim();
+        return res.json(JSON.parse(clean));
+    } catch {
+        return res.json({ quiz: [] });
     }
 });
 
 // ================= DOUBT =================
 app.post("/doubt", async (req, res) => {
-    try {
-        const { question } = req.body;
 
-        if (!question) {
-            return res.status(400).json({ result: "Enter question" });
-        }
+    const { question } = req.body;
 
-        const prompt = `
+    if (!question) {
+        return res.status(400).json({ result: "Enter question" });
+    }
+
+    const prompt = `
 Explain in simple Hinglish:
 
 ${question}
 
 - step by step
-- short answer
+- short
 `;
 
-        const result = await callAI(prompt);
+    const result = await callAI(prompt);
 
-        if (!result) {
-            return res.json({ result: "⚠️ Try again later" });
-        }
-
-        res.json({ result });
-
-    } catch (err) {
-        console.log("❌ DOUBT ERROR:", err.message);
-
-        res.status(500).json({
-            result: "Doubt failed"
-        });
+    if (!result) {
+        return res.json({ result: "⚠️ Try again later" });
     }
+
+    res.json({ result });
 });
 
 // ================= SERVER =================
 app.listen(PORT, () => {
-    console.log(`🚀 EduNova backend running on port ${PORT}`);
+    console.log(`🚀 Server running on ${PORT}`);
 });
-
-
-// require("dotenv").config()
-
-// const express = require("express")
-// const axios = require("axios")
-// const cors = require("cors")
-
-// const app = express()
-
-// app.use(cors())
-// app.use(express.json())
-
-// // 🔥 CHECK API KEY ON START
-// if (!process.env.API_KEY) {
-//     console.log("❌ ERROR: API_KEY missing in .env file")
-//     process.exit(1)
-// }
-
-// // ================= AI CALL FUNCTION =================
-// async function callAI(prompt, system = "You are a helpful AI") {
-//     try {
-//         const response = await axios.post(
-//             "https://openrouter.ai/api/v1/chat/completions",
-//             {
-//                 model: "openai/gpt-4o-mini",
-//                 messages: [
-//                     { role: "system", content: system },
-//                     { role: "user", content: prompt }
-//                 ],
-//                 temperature: 0.6,
-//                 max_tokens: 600
-//             },
-//             {
-//                 headers: {
-//                     "Authorization": `Bearer ${process.env.API_KEY}`,
-//                     "Content-Type": "application/json",
-//                     "HTTP-Referer": "http://localhost:3000",
-//                     "X-Title": "EduNova App"
-//                 },
-//                 timeout: 20000
-//             }
-//         )
-
-//         return response.data?.choices?.[0]?.message?.content || null
-
-//     } catch (err) {
-//         console.log("❌ AI ERROR:", err.response?.data || err.message)
-//         return null
-//     }
-// }
-
-// // ================= HEALTH CHECK =================
-// app.get("/", (req, res) => {
-//     res.send("✅ EduNova Backend Running")
-// })
-
-// // ================= NOTES =================
-// app.post("/notes", async (req, res) => {
-//     try {
-//         const { topic, exam = "General" } = req.body
-
-//         if (!topic) {
-//             return res.status(400).json({ result: "Enter topic" })
-//         }
-
-//         const prompt = `
-// Generate short study notes on "${topic}" for ${exam}
-
-// Rules:
-// - 8 bullet points
-// - simple English
-// - each point 1-2 lines
-// - exam focused
-// `
-
-//         const result = await callAI(prompt)
-
-//         if (!result) {
-//             return res.json({ result: "⚠️ Server busy, try again" })
-//         }
-
-//         res.json({ result })
-
-//     } catch (err) {
-//         console.log("❌ NOTES ERROR:", err.message)
-//         res.status(500).json({ result: "⚠️ Server error" })
-//     }
-// })
-
-// // ================= QUIZ =================
-// app.post("/quiz", async (req, res) => {
-//     try {
-//         const { topic } = req.body
-
-//         if (!topic) {
-//             return res.json({
-//                 result: JSON.stringify({ quiz: [] })
-//             })
-//         }
-
-//         const prompt = `
-// Generate 5 MCQs on "${topic}"
-
-// STRICT RULES:
-// - ONLY return JSON
-// - NO explanation outside JSON
-// - NO markdown
-
-// FORMAT:
-// {
-//  "quiz":[
-//   {
-//    "question":"string",
-//    "options":["A","B","C","D"],
-//    "correct_answer_index":0,
-//    "explanation":"string",
-//    "subTopic":"string"
-//   }
-//  ]
-// }
-// `
-
-//         const aiResponse = await callAI(prompt, "Return ONLY valid JSON.")
-
-//         if (!aiResponse) {
-//             return res.json({
-//                 result: JSON.stringify({ quiz: [] })
-//             })
-//         }
-
-//         let raw = aiResponse
-
-//         console.log("RAW QUIZ:", raw)
-
-//         // CLEAN JSON
-//         raw = raw.replace(/```json/g, "")
-//                  .replace(/```/g, "")
-//                  .trim()
-
-//         const start = raw.indexOf("{")
-//         const end = raw.lastIndexOf("}")
-
-//         if (start === -1 || end === -1) {
-//             throw new Error("Invalid JSON format")
-//         }
-
-//         const jsonString = raw.substring(start, end + 1)
-
-//         let parsed
-
-//         try {
-//             parsed = JSON.parse(jsonString)
-//         } catch (e) {
-//             console.log("❌ JSON PARSE FAIL:", jsonString)
-
-//             return res.json({
-//                 result: JSON.stringify({ quiz: [] })
-//             })
-//         }
-
-//         res.json({
-//             result: JSON.stringify(parsed)
-//         })
-
-//     } catch (err) {
-//         console.log("❌ QUIZ ERROR:", err.message)
-
-//         res.json({
-//             result: JSON.stringify({ quiz: [] })
-//         })
-//     }
-// })
-
-// // ================= DOUBT =================
-// app.post("/doubt", async (req, res) => {
-//     try {
-//         const { question } = req.body
-
-//         if (!question) {
-//             return res.json({ result: "Enter question" })
-//         }
-
-//         const prompt = `
-// Explain this in simple steps:
-
-// ${question}
-
-// Rules:
-// - simple Hinglish
-// - step by step
-// - short answer
-// `
-
-//         const result = await callAI(prompt)
-
-//         if (!result) {
-//             return res.json({ result: "⚠️ Try again later" })
-//         }
-
-//         res.json({ result })
-
-//     } catch (err) {
-//         console.log("❌ DOUBT ERROR:", err.message)
-//         res.status(500).json({ result: "Error solving doubt" })
-//     }
-// })
-
-// // ================= SERVER =================
-// const PORT = process.env.PORT || 3000
-
-// app.listen(PORT, () => {
-//     console.log(`🚀 EduNova backend running on port ${PORT}`)
-// })
-
-
-
-
