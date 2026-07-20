@@ -102,3 +102,7 @@ app.post("/doubt", async (req, res) => {
         res.status(500).json({ error: "Doubt failed" })
     }
 })
+
+app.listen(PORT, "0.0.0.0", () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+});
