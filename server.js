@@ -15,12 +15,13 @@ async function callAI(prompt) {
         const response = await axios.post(
             "https://openrouter.ai/api/v1/chat/completions",
             {
-                model: "openai/gpt-4o-mini", 
+                // 🔥 Badalkar free model kar diya
+                model: "google/gemini-2.5-flash:free", 
                 messages: [
                     { role: "user", content: prompt }
                 ],
                 temperature: 0.7,
-                max_tokens: 500 // 👈 यहाँ 70 से बढ़ाकर 500 कर दिया ताकि नोट्स पूरे आ सकें
+                max_tokens: 500 // Ab yeh 500 tokens par bhi error nahi dega
             },
             {
                 headers: {
@@ -30,6 +31,7 @@ async function callAI(prompt) {
                 timeout: 20000
             }
         );
+    
 
         if (!response.data || !response.data.choices) {
             console.log("❌ INVALID RESPONSE:", response.data);
