@@ -1,4 +1,5 @@
 require("dotenv").config();
+console.log("CHECK ENV:", process.env.GROQ_API_KEY);
 const express = require("express");
 const axios = require("axios");
 const cors = require("cors");
