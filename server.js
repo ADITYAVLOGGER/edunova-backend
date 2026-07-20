@@ -22,44 +22,40 @@ Topic: ${topic}
 Exam: ${exam}
 
 TASK:
-Generate COMPLETE, FULL-LENGTH STUDY NOTES as if you are teaching the entire chapter.
-
-IMPORTANT:
-- DO NOT create short notes
-- DO NOT summarize
-- Explain EVERYTHING in detail
-- Output must feel like reading a full chapter, not notes
+Teach this topic like a FULL CHAPTER from a textbook.
 
 DEPTH RULE:
-- If exam is competitive → go DEEP (concept + derivation + reasoning)
-- If exam is school → clear but still detailed explanation
+- Competitive exams → deep + conceptual + reasoning + derivations
+- School exams → simple but still detailed
 
-STRUCTURE (natural, not forced sections):
-Start from basics and go step-by-step like a teacher explaining from zero.
+IMPORTANT:
+- Do NOT summarize
+- Do NOT shorten explanation
+- Explain everything step-by-step from basics
 
-COVER EVERYTHING:
-- Basic idea
-- Full explanation of all concepts
-- All types and classifications
-- Why concepts work (logic)
-- Real-life examples
-- All formulas with explanation
-- Units and conditions
-- Important points
-- Common mistakes
-- Exam-level tricks (if needed)
+CONTENT REQUIREMENTS:
+You MUST cover:
 
-VERY IMPORTANT RULES:
-- Minimum 80–150 lines of explanation
-- Each concept must be deeply explained
+1. Basic Concept (start from zero)
+2. Full Explanation of all ideas
+3. All types / classifications
+4. Why the concept works (logic)
+5. Real-life examples
+6. All formulas (with explanation + units)
+7. Common mistakes
+8. Important exam tricks
+
+STRICT RULES:
+- Minimum 120+ lines
 - No skipping any concept
-- No one-line explanation
-- Avoid too many headings — keep flow natural like a chapter
-- Use paragraphs + bullet points
+- Each point must be explained clearly
+- Avoid 1-line answers
+- Make it feel like reading a full chapter
 
-OUTPUT STYLE:
-- Looks like a full textbook explanation
-- Easy English but deep understanding
+STYLE:
+- Natural flow like a teacher explaining
+- Use paragraphs + bullet points
+- Keep it readable and engaging
 `;
         const response = await axios.post(
              "https://api.groq.com/openai/v1/chat/completions",
@@ -76,7 +72,7 @@ OUTPUT STYLE:
                     }
                 ],
                 temperature: 0.6,
-                max_tokens: 1500
+                max_tokens: 3000
             },
             {
                 headers: {
