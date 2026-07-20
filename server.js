@@ -9,72 +9,55 @@ app.use(express.json());
 
 const PORT = 3000;
 
-// 🔥 FIXED AI FUNCTION WITH RETRY
-
-app.get("/", (req, res) => {
-    console.log("🔥 HOME HIT");
-    res.send("Server working");
-});
-
+// 🔥 SAFE AI FUNCTION
 async function callAI(prompt) {
-
-    for (let attempt = 1; attempt <= 2; attempt++) {
-        try {
-
-            console.log("📤 Calling AI... Attempt:", attempt);
-console.log("KEY:", process.env.API_KEY);
-            const response = await axios.post(
-                "https://openrouter.ai/api/v1/chat/completions",
-                {
-                    model: "mistralai/mistral-7b-instruct", // 🔥 more stable free model
-                    messages: [
-                        {
-                            role: "system",
-                            content: "You are a smart study assistant. Give short Hinglish notes."
-                        },
-                        {
-                            role: "user",
-                            content: prompt
-                        }
-                    ],
-                    temperature: 0.7,
-                    max_tokens: 700
+    try {
+        const response = await axios.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            {
+                model: "openai/gpt-3.5-turbo", // 🔥 stable model
+                messages: [
+                    { role: "user", content: prompt }
+                ],
+                temperature: 0.7,
+                max_tokens: 500
+            },
+            {
+                headers: {
+                    "Authorization": `Bearer ${process.env.API_KEY}`,
+                    "Content-Type": "application/json"
                 },
-                {
-                    headers: {
-                        "Authorization": `Bearer ${process.env.API_KEY}`,
-                        "Content-Type": "application/json"
-                    },
-                    timeout: 20000
-                }
-            );
-
-            const text = response.data?.choices?.[0]?.message?.content;
-
-            if (text) {
-                console.log("✅ AI SUCCESS");
-                return text;
+                timeout: 20000
             }
+        );
 
-        } catch (err) {
-            console.log("❌ AI ERROR:", err.response?.data || err.message);
+        // 🔥 SAFE PARSING
+        if (!response.data || !response.data.choices) {
+            console.log("❌ INVALID RESPONSE:", response.data);
+            return null;
         }
-    }
 
-    return null;
+        return response.data.choices[0].message.content;
+
+    } catch (err) {
+        console.log("❌ AI ERROR:", err.response?.data || err.message);
+        return null;
+    }
 }
 
 // ================= NOTES =================
 app.post("/notes", async (req, res) => {
 
-    const { topic, exam } = req.body;
-    console.log("📥 REQUEST:", topic, exam);
+    try {
+        const { topic, exam } = req.body;
 
-    if (!topic) {
-        return res.status(400).json({ result: "Enter topic" });
-    }
+        console.log("📥 REQUEST:", topic, exam);
 
-    const prompt = `
+        if (!topic) {
+            return res.json({ result: "Enter topic" });
+        }
+
+        const prompt = `
 Generate study notes:
 
 Topic: ${topic}
@@ -86,29 +69,40 @@ Rules:
 - Short + exam focused
 `;
 
-    const result = await callAI(prompt);
+        const result = await callAI(prompt);
 
-    // 🔥 FALLBACK (IMPORTANT)
-    if (!result) {
-        return res.status(200).json({
-            result: `
-⚠️ Server busy but don't stop studying 💪
+        // 🔥 ALWAYS RETURN result (NO error field)
+        if (!result) {
+            return res.json({
+                result: `⚠️ Server busy. Try again.\n\nTopic: ${topic}`
+            });
+        }
 
-Topic: ${topic}
+        return res.json({ result });
 
-Quick Notes:
-• Definition samjho
-• Important formulas yaad karo
-• Concepts clear rakho
-• PYQs practice karo
-• Short revision notes banao
+    } catch (err) {
+        console.log("❌ NOTES ERROR:", err);
 
-👉 Retry after few seconds for detailed notes
-`
+        // 🔥 NEVER SEND error, always result
+        return res.json({
+            result: "⚠️ Notes generation failed, try again"
         });
     }
+});
 
-    res.json({ result });
+// ================= TEST =================
+app.get("/test", async (req, res) => {
+    const result = await callAI("Hello");
+
+    if (result) {
+        res.send("✅ WORKING");
+    } else {
+        res.send("❌ FAIL");
+    }
+});
+
+app.listen(PORT, () => {
+    console.log(`🚀 Server running on ${PORT}`);
 });
 
 // ================= QUIZ =================
