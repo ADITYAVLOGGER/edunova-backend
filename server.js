@@ -186,26 +186,45 @@ Format:
 
 
 // ---------------- QUIZ ----------------
+
 app.post("/quiz", async (req, res) => {
     try {
-        const { topic } = req.body
+        const { topic, subject, exam, level, standard, notes } = req.body;
 
         if (!topic) {
-            return res.status(400).json({ error: "Topic is required" })
+            return res.status(400).json({ error: "Topic is required" });
         }
 
-        const response = await axios.post(
-            "https://api.groq.com/openai/v1/chat/completions",
-            {
-                model: "llama-3.1-8b-instant",
-                messages: [{
-                    role: "system",
-                    content: "You are a quiz generator. Always respond in pure JSON format."
-                }, {
-                    role: "user",
-                    content: `Generate 5 MCQ quiz on ${topic}
+        const safeSubject = subject || "General";
+        const safeExam = exam || "General";
+        const safeLevel = level || "easy";
 
-Return ONLY valid JSON in this format:
+        // 🔥 SMART PROMPT (SUBJECT LOCK + CONTEXT)
+        const prompt = `
+You are a strict ${safeSubject} teacher.
+
+IMPORTANT:
+- Stay ONLY in ${safeSubject}
+- Do NOT mix subjects
+- Generate accurate exam-level questions
+
+Topic: ${topic}
+Exam: ${safeExam}
+Class: ${standard || ""}
+Difficulty: ${safeLevel}
+
+${notes ? `Reference Notes:\n${notes}` : ""}
+
+Generate 5 MCQ questions.
+
+Rules:
+- 4 options only
+- One correct answer
+- Include explanation
+- Add subTopic
+- Keep questions exam-focused
+
+Return ONLY JSON:
 
 {
   "quiz": [
@@ -218,10 +237,22 @@ Return ONLY valid JSON in this format:
     }
   ]
 }
+`;
 
-NO extra text. NO markdown. ONLY JSON.`
-                }],
-                // Enforce JSON output mode for Groq/OpenAI APIs
+        const response = await axios.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            {
+                model: "llama-3.1-8b-instant",
+                messages: [
+                    {
+                        role: "system",
+                        content: "Return ONLY JSON. No markdown."
+                    },
+                    {
+                        role: "user",
+                        content: prompt
+                    }
+                ],
                 response_format: { type: "json_object" }
             },
             {
@@ -230,18 +261,100 @@ NO extra text. NO markdown. ONLY JSON.`
                     "Content-Type": "application/json"
                 }
             }
-        )
-        console.log("QUIZ REQUEST:", req.body)
-        const resultText = response.data.choices[0].message.content
-        res.json({ result: resultText })
-        // res.json({ result: JSON.parse(resultText) })
+        );
+
+        const aiResponse = response.data.choices[0].message.content;
+
+        // 🔥 SAFE PARSE
+        let parsed;
+        try {
+            parsed = JSON.parse(aiResponse);
+        } catch (err) {
+            console.error("JSON PARSE FAIL:", aiResponse);
+
+            return res.json({
+                result: JSON.stringify({
+                    quiz: []
+                })
+            });
+        }
+
+        // 🔥 IMPORTANT FIX (STRING RETURN)
+        res.json({
+            result: JSON.stringify(parsed)   // ✅ ALWAYS STRING
+        });
 
     } catch (err) {
-        console.error(err.response?.data || err.message)
-        console.error("QUIZ ERROR:", err.response?.data || err.message)
-        res.status(500).json({ error: "Quiz failed" })
+        console.error("QUIZ ERROR:", err.response?.data || err.message);
+
+        res.json({
+            result: JSON.stringify({
+                quiz: []
+            })
+        });
     }
-})
+});
+
+
+// yeh wala working haii
+// app.post("/quiz", async (req, res) => {
+//     try {
+//         const { topic } = req.body
+
+//         if (!topic) {
+//             return res.status(400).json({ error: "Topic is required" })
+//         }
+
+//         const response = await axios.post(
+//             "https://api.groq.com/openai/v1/chat/completions",
+//             {
+//                 model: "llama-3.1-8b-instant",
+//                 messages: [{
+//                     role: "system",
+//                     content: "You are a quiz generator. Always respond in pure JSON format."
+//                 }, {
+//                     role: "user",
+//                     content: `Generate 5 MCQ quiz on ${topic}
+
+// Return ONLY valid JSON in this format:
+
+// {
+//   "quiz": [
+//     {
+//       "question": "string",
+//       "options": ["A","B","C","D"],
+//       "correct_answer_index": 0,
+//       "explanation": "string",
+//       "subTopic": "string"
+//     }
+//   ]
+// }
+
+// NO extra text. NO markdown. ONLY JSON.`
+//                 }],
+//                 // Enforce JSON output mode for Groq/OpenAI APIs
+//                 response_format: { type: "json_object" }
+//             },
+//             {
+//                 headers: {
+//                     "Authorization": `Bearer ${process.env.API_KEY}`,
+//                     "Content-Type": "application/json"
+//                 }
+//             }
+//         )
+//         console.log("QUIZ REQUEST:", req.body)
+//         const resultText = response.data.choices[0].message.content
+//         res.json({ result: resultText })
+//         // res.json({ result: JSON.parse(resultText) })
+
+//     } catch (err) {
+//         console.error(err.response?.data || err.message)
+//         console.error("QUIZ ERROR:", err.response?.data || err.message)
+//         res.status(500).json({ error: "Quiz failed" })
+//     }
+// })
+
+
 
 // app.post("/quiz", async (req, res) => {
 //     try {
