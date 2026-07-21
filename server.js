@@ -100,7 +100,23 @@ app.post("/quiz", async (req, res) => {
                     content: "You are a quiz generator. Always respond in pure JSON format."
                 }, {
                     role: "user",
-                    content: `Generate 5 MCQ quiz on ${topic} with: question, 4 options, correct answer index, and explanation in JSON format.`
+                    content: `Generate 5 MCQ quiz on ${topic}
+
+Return ONLY valid JSON in this format:
+
+{
+  "quiz": [
+    {
+      "question": "string",
+      "options": ["A","B","C","D"],
+      "correct_answer_index": 0,
+      "explanation": "string",
+      "subTopic": "string"
+    }
+  ]
+}
+
+NO extra text. NO markdown. ONLY JSON.`
                 }],
                 // Enforce JSON output mode for Groq/OpenAI APIs
                 response_format: { type: "json_object" }
@@ -112,12 +128,14 @@ app.post("/quiz", async (req, res) => {
                 }
             }
         )
-
+        console.log("QUIZ REQUEST:", req.body)
         const resultText = response.data.choices[0].message.content
-        res.json({ result: JSON.parse(resultText) })
+        res.json({ result: resultText })
+        // res.json({ result: JSON.parse(resultText) })
 
     } catch (err) {
         console.error(err.response?.data || err.message)
+        console.error("QUIZ ERROR:", err.response?.data || err.message)
         res.status(500).json({ error: "Quiz failed" })
     }
 })
