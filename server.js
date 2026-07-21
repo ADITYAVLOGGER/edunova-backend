@@ -10,15 +10,18 @@ app.use(express.json())
 // ---------------- NOTES ----------------
 app.post("/notes", async (req, res) => {
     try {
-
         const { topic, subject, exam, level } = req.body
+
+        if (!topic) {
+            return res.status(400).json({ error: "Topic is required" })
+        }
 
         // 🔥 fallback values (safety)
         const safeExam = exam || "General"
         const safeSubject = subject || "General"
         const safeLevel = level || "Beginner"
 
-        // 🔥 SMART PROMPT (IMPORTANT)
+        // 🔥 SMART PROMPT
         const prompt = `
 Create ${safeLevel} level exam-ready notes.
 
@@ -40,10 +43,11 @@ Format:
 📌 Example (if needed)
 `
 
+        // FIX: Added missing comma after URL string below
         const response = await axios.post(
-             "https://api.groq.com/openai/v1/chat/completions"
+            "https://api.groq.com/openai/v1/chat/completions",
             {
-               model: "llama3-8b-8192",
+                model: "llama3-8b-8192",
                 messages: [
                     {
                         role: "user",
@@ -83,15 +87,23 @@ app.post("/quiz", async (req, res) => {
     try {
         const { topic } = req.body
 
+        if (!topic) {
+            return res.status(400).json({ error: "Topic is required" })
+        }
+
         const response = await axios.post(
-             "https://api.groq.com/openai/v1/chat/completions",
+            "https://api.groq.com/openai/v1/chat/completions",
             {
                 model: "llama3-8b-8192",
                 messages: [{
+                    role: "system",
+                    content: "You are a quiz generator. Always respond in pure JSON format."
+                }, {
                     role: "user",
-                    content: `Generate 5 MCQ quiz on ${topic} with:
-                    question, 4 options, correct answer index, and explanation in JSON format`
-                }]
+                    content: `Generate 5 MCQ quiz on ${topic} with: question, 4 options, correct answer index, and explanation in JSON format.`
+                }],
+                // Enforce JSON output mode for Groq/OpenAI APIs
+                response_format: { type: "json_object" }
             },
             {
                 headers: {
@@ -101,9 +113,11 @@ app.post("/quiz", async (req, res) => {
             }
         )
 
-        res.json({ result: response.data.choices[0].message.content })
+        const resultText = response.data.choices[0].message.content
+        res.json({ result: JSON.parse(resultText) })
 
     } catch (err) {
+        console.error(err.response?.data || err.message)
         res.status(500).json({ error: "Quiz failed" })
     }
 })
@@ -113,8 +127,12 @@ app.post("/doubt", async (req, res) => {
     try {
         const { question } = req.body
 
+        if (!question) {
+            return res.status(400).json({ error: "Question is required" })
+        }
+
         const response = await axios.post(
-             "https://api.groq.com/openai/v1/chat/completions",
+            "https://api.groq.com/openai/v1/chat/completions",
             {
                 model: "llama3-8b-8192",
                 messages: [{
@@ -133,6 +151,7 @@ app.post("/doubt", async (req, res) => {
         res.json({ result: response.data.choices[0].message.content })
 
     } catch (err) {
+        console.error(err.response?.data || err.message)
         res.status(500).json({ error: "Doubt failed" })
     }
 })
