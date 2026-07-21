@@ -47,7 +47,7 @@ Format:
         const response = await axios.post(
             "https://api.groq.com/openai/v1/chat/completions",
             {
-                model: "llama3-8b-8192",
+               model: "llama-3.1-8b-instant",
                 messages: [
                     {
                         role: "user",
@@ -94,7 +94,7 @@ app.post("/quiz", async (req, res) => {
         const response = await axios.post(
             "https://api.groq.com/openai/v1/chat/completions",
             {
-                model: "llama3-8b-8192",
+                model: "llama-3.1-8b-instant",
                 messages: [{
                     role: "system",
                     content: "You are a quiz generator. Always respond in pure JSON format."
@@ -134,7 +134,7 @@ app.post("/doubt", async (req, res) => {
         const response = await axios.post(
             "https://api.groq.com/openai/v1/chat/completions",
             {
-                model: "llama3-8b-8192",
+                model: "llama-3.1-8b-instant",
                 messages: [{
                     role: "user",
                     content: `Solve this doubt in simple student friendly way: ${question}`
