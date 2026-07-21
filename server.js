@@ -106,30 +106,42 @@ app.post("/notes", async (req, res) => {
 
         // 🔥 SMART PROMPT ENGINE
         const prompt = `
-Create ${finalLevel} level exam-ready notes.
+You are a strict academic subject expert.
 
-Exam: ${safeExam}
+IMPORTANT RULE:
+- Do NOT change the subject.
+- Do NOT mix subjects.
+- Only generate content strictly from the given subject.
+
 Subject: ${safeSubject}
-Stream: ${safeStream}
+Exam: ${safeExam}
 Class: ${standard || ""}
+Level: ${finalLevel}
 
 Topic: ${topic}
 
+INSTRUCTION:
+If the topic belongs to ${safeSubject}, explain it.
+If it seems confusing, STILL interpret it within ${safeSubject} only.
+
+Example:
+- "Indian Number System" → Mathematics
+- NOT Civics or History
+
 Rules:
-- Use short bullet points
+- Short bullet points
 - No long paragraphs
-- Easy to revise quickly
-- Highlight important exam points
+- Simple language
 - Add formulas if needed
-- Add tricks / shortcuts if possible
-- Keep language simple
+- Add examples
+- Focus on exam preparation
 
 Format:
 📌 Definition
 📌 Key Points
-📌 Important Concepts
+📌 Concepts
 📌 Formula (if any)
-📌 Example (if needed)
+📌 Example
 📌 Exam Tips
 `;
 
