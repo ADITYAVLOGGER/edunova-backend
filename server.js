@@ -455,20 +455,50 @@ Return ONLY JSON:
 // ---------------- DOUBT SOLVER ----------------
 app.post("/doubt", async (req, res) => {
     try {
-        const { question } = req.body
+        const { question } = req.body;
 
         if (!question) {
-            return res.status(400).json({ error: "Question is required" })
+            return res.status(400).json({ error: "Question is required" });
         }
+
+        // 🔥 STEP 1: BLOCK UNSAFE QUESTIONS
+        const blockedKeywords = [
+            "dark web", "hack", "hacking", "crack password",
+            "piracy", "torrent", "illegal", "drugs",
+            "bomb", "weapon", "cheat exam", "bypass",
+            "exploit", "carding", "phishing"
+        ];
+
+        const lowerQ = question.toLowerCase();
+
+        if (blockedKeywords.some(word => lowerQ.includes(word))) {
+            return res.json({
+                result: "⚠️ This question is not allowed. Please ask study-related doubts only."
+            });
+        }
+
+        // 🔥 STEP 2: SAFE PROMPT
+        const prompt = `
+You are a helpful student tutor.
+
+STRICT RULES:
+- Only answer educational questions
+- Do NOT answer illegal, harmful, hacking, piracy, or unethical topics
+- If question is unsafe, politely refuse
+- Explain in simple language
+- Use steps if needed
+
+Question: ${question}
+`;
 
         const response = await axios.post(
             "https://api.groq.com/openai/v1/chat/completions",
             {
                 model: "llama-3.1-8b-instant",
-                messages: [{
-                    role: "user",
-                    content: `Solve this doubt in simple student friendly way: ${question}`
-                }]
+                messages: [
+                    { role: "system", content: "You are a safe educational AI tutor." },
+                    { role: "user", content: prompt }
+                ]
             },
             {
                 headers: {
@@ -476,16 +506,17 @@ app.post("/doubt", async (req, res) => {
                     "Content-Type": "application/json"
                 }
             }
-        )
+        );
 
-        res.json({ result: response.data.choices[0].message.content })
+        res.json({
+            result: response.data.choices[0].message.content
+        });
 
     } catch (err) {
-        console.error(err.response?.data || err.message)
-        res.status(500).json({ error: "Doubt failed" })
+        console.error(err.response?.data || err.message);
+        res.status(500).json({ error: "Doubt failed" });
     }
-})
-
+});
 
 // ---------------- SERVER ----------------
 app.listen(3000, () => {
