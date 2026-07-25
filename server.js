@@ -279,6 +279,11 @@ Question: ${question}
     }
 });
 
+app.get("/", (req, res) => {
+    res.send("Server is alive 🚀")
+})
+
+
 // ---------------- SERVER ----------------
 app.listen(3000, () => {
     console.log("EduNova AI Backend running on port 3000")
