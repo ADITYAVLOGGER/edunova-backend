@@ -71,7 +71,7 @@ No extra headings like "Subject:" or "Level:".
         const response = await axios.post(
             "https://api.groq.com/openai/v1/chat/completions",
             {
-                model = "openai/gpt-oss-20b",
+                model : "openai/gpt-oss-20b",
                 messages: [
                     {
                         role: "system",
@@ -160,7 +160,7 @@ Return ONLY JSON:
         const response = await axios.post(
             "https://api.groq.com/openai/v1/chat/completions",
             {
-                model = "openai/gpt-oss-20b",
+                model : "openai/gpt-oss-20b",
                 messages: [
                     {
                         role: "system",
@@ -255,7 +255,7 @@ Question: ${question}
         const response = await axios.post(
             "https://api.groq.com/openai/v1/chat/completions",
             {
-                model = "openai/gpt-oss-20b",
+                model : "openai/gpt-oss-20b",
                 messages: [
                     { role: "system", content: "You are a safe educational AI tutor." },
                     { role: "user", content: prompt }
