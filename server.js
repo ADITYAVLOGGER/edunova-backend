@@ -213,6 +213,114 @@ Return ONLY JSON:
     }
 });
 
+app.post("/video", async (req, res) => {
+    try {
+        const { topic, subject, exam, level, standard } = req.body;
+
+        if (!topic) {
+            return res.status(400).json({ error: "Topic is required" });
+        }
+
+        const safeSubject = subject || "General";
+        const safeExam = exam || "General";
+
+        let finalLevel = level;
+
+        if (!finalLevel) {
+            if (["6","7","8"].includes(standard)) finalLevel = "Beginner";
+            else if (["9","10"].includes(standard)) finalLevel = "Intermediate";
+            else if (["11","12"].includes(standard)) finalLevel = "Advanced";
+            else finalLevel = "Beginner";
+        }
+
+        // 🔥 MOST IMPORTANT PROMPT (AI TEACHER STYLE)
+        const prompt = `
+You are an engaging ${safeSubject} teacher.
+
+GOAL:
+Explain the topic like a real teacher teaching a student.
+
+Topic: ${topic}
+Level: ${finalLevel}
+
+STRICT RULES:
+- Use very simple Hinglish language
+- Break into small teaching steps
+- Each scene = ONE idea only
+- Use examples
+- Ask small questions like "Socho..." or "Samjho..."
+- Keep it engaging (not boring textbook)
+- Avoid long paragraphs
+- Make it feel like teacher is explaining
+
+OUTPUT FORMAT (STRICT JSON ONLY):
+
+{
+  "scenes": [
+    {
+      "text": "Socho ek ball table pe rakhi hai...",
+      "duration": 5
+    }
+  ]
+}
+
+RULES:
+- 5 to 7 scenes only
+- duration between 4 to 8 seconds
+- DO NOT return markdown
+- DO NOT return explanation outside JSON
+`;
+
+        const response = await axios.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            {
+                model: "openai/gpt-oss-20b",
+                messages: [
+                    {
+                        role: "system",
+                        content: "Return ONLY JSON. No markdown. No explanation."
+                    },
+                    {
+                        role: "user",
+                        content: prompt
+                    }
+                ],
+                response_format: { type: "json_object" }
+            },
+            {
+                headers: {
+                    "Authorization": `Bearer ${process.env.API_KEY}`,
+                    "Content-Type": "application/json"
+                }
+            }
+        );
+
+        const aiResponse = response.data.choices[0].message.content;
+
+        // 🔥 SAFE JSON PARSE
+        let parsed;
+
+        try {
+            parsed = JSON.parse(aiResponse);
+        } catch (err) {
+            console.error("VIDEO JSON ERROR:", aiResponse);
+
+            return res.json({
+                scenes: []
+            });
+        }
+
+        res.json(parsed);
+
+    } catch (err) {
+        console.error("VIDEO ERROR:", err.response?.data || err.message);
+
+        res.status(500).json({
+            scenes: []
+        });
+    }
+});
+
 // ---------------- DOUBT SOLVER ----------------
 app.post("/doubt", async (req, res) => {
     try {
