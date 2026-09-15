@@ -215,119 +215,93 @@ Return ONLY JSON:
 
 app.post("/video", async (req, res) => {
     try {
-        const { topic, subject, exam, level, standard } = req.body;
+        const { topic, subject, level, standard } = req.body;
 
         if (!topic) {
             return res.status(400).json({ error: "Topic is required" });
         }
 
-        const safeSubject = subject || "General";
-        const safeExam = exam || "General";
-
         let finalLevel = level;
-
         if (!finalLevel) {
             if (["6","7","8"].includes(standard)) finalLevel = "Beginner";
             else if (["9","10"].includes(standard)) finalLevel = "Intermediate";
-            else if (["11","12"].includes(standard)) finalLevel = "Advanced";
             else finalLevel = "Beginner";
         }
 
-        // 🔥 MOST IMPORTANT PROMPT (AI TEACHER STYLE)
-       const prompt = `
-You are a real classroom teacher.
+        const prompt = `
+You are a real Indian school teacher.
 
 GOAL:
-Explain deeply so student actually understands.
+Teach deeply so student fully understands like classroom teaching.
 
 Topic: ${topic}
 Level: ${finalLevel}
 
-IMPORTANT:
-- Use ONLY ONE example from start to end
-- Each scene must contain COMPLETE explanation (not 1 line)
-- Each scene = 2 to 3 sentences minimum
-- Continue same example in all scenes
-- Explain slowly like teacher (not fast)
+STRICT TEACHING RULES:
 
-TEACHING STYLE:
+- Start with proper definition (school style)
+- Then explain meaning in simple words
+- Use ONLY ONE example
+- Continue SAME example till end
+- Explain step-by-step slowly
+- Add reasoning (why this happens)
+- No random facts
+- No multiple examples
+- No short lines
+
+VERY IMPORTANT:
+- Each scene must be COMPLETE explanation (2–4 sentences)
+- Scenes must CONNECT like continuous teaching
+- Student should feel flow (not cut-cut)
+
+STYLE:
 - Hinglish
 - Use: "Socho...", "Ab dekho...", "Dhyaan do..."
-- Add explanation + reasoning
 - Make student visualize
 
-STRUCTURE:
-1. Example introduce
-2. Explain step properly
-3. Add reasoning
-4. Continue same example
-5. Final clarity
+SCENE RULES:
+- Only 3–4 scenes
+- Each scene = long explanation
+- duration: 10–18 seconds
 
 OUTPUT:
 
 {
   "scenes": [
     {
-      "text": "Socho tumhare paas 1000 rupees hai. Ab tum usme 500 aur add karte ho, toh total 1500 ho jata hai. Yaha tum dekh rahe ho ki number ka size badh raha hai.",
-      "duration": 8
+      "text": "An animal is a living organism. Matlab aise jeev jo saans lete hain, grow karte hain aur move kar sakte hain. Socho ek dog ko, woh khata hai, daudta hai aur react karta hai.",
+      "duration": 12
     }
   ]
 }
 
-RULES:
-- 4 to 5 scenes only
-- Each scene must feel complete explanation
-- Same example continue
-- duration 6–10 sec
-- ONLY JSON
+RETURN ONLY JSON
 `;
+
         const response = await axios.post(
             "https://api.groq.com/openai/v1/chat/completions",
             {
                 model: "openai/gpt-oss-20b",
                 messages: [
-                    {
-                        role: "system",
-                        content: "Return ONLY JSON. No markdown. No explanation."
-                    },
-                    {
-                        role: "user",
-                        content: prompt
-                    }
+                    { role: "system", content: "Return ONLY JSON." },
+                    { role: "user", content: prompt }
                 ],
                 response_format: { type: "json_object" }
             },
             {
                 headers: {
-                    "Authorization": `Bearer ${process.env.API_KEY}`,
-                    "Content-Type": "application/json"
+                    Authorization: `Bearer ${process.env.API_KEY}`
                 }
             }
         );
 
-        const aiResponse = response.data.choices[0].message.content;
-
-        // 🔥 SAFE JSON PARSE
-        let parsed;
-
-        try {
-            parsed = JSON.parse(aiResponse);
-        } catch (err) {
-            console.error("VIDEO JSON ERROR:", aiResponse);
-
-            return res.json({
-                scenes: []
-            });
-        }
+        const parsed = JSON.parse(response.data.choices[0].message.content);
 
         res.json(parsed);
 
     } catch (err) {
-        console.error("VIDEO ERROR:", err.response?.data || err.message);
-
-        res.status(500).json({
-            scenes: []
-        });
+        console.error(err);
+        res.json({ scenes: [] });
     }
 });
 
