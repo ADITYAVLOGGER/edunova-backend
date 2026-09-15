@@ -238,52 +238,49 @@ app.post("/video", async (req, res) => {
 You are a real classroom teacher.
 
 GOAL:
-Teach the topic using ONLY ONE example from start to end.
+Explain deeply so student actually understands.
 
 Topic: ${topic}
 Level: ${finalLevel}
 
 IMPORTANT:
-- First scene: introduce ONE example
-- All next scenes MUST continue SAME example
-- Do NOT change example
-- Build understanding step by step
-- Each scene depends on previous scene
-- Make it feel like teacher is explaining continuously
+- Use ONLY ONE example from start to end
+- Each scene must contain COMPLETE explanation (not 1 line)
+- Each scene = 2 to 3 sentences minimum
+- Continue same example in all scenes
+- Explain slowly like teacher (not fast)
 
 TEACHING STYLE:
-- Hinglish (simple)
-- Use "Socho...", "Ab dekho...", "Samjho..."
-- No theory dumping
-- No multiple examples
-- No random jumps
+- Hinglish
+- Use: "Socho...", "Ab dekho...", "Dhyaan do..."
+- Add explanation + reasoning
+- Make student visualize
 
-STRUCTURE FLOW:
-1. Introduce example
-2. Show problem
-3. Explain step
-4. Next step
-5. Final understanding
+STRUCTURE:
+1. Example introduce
+2. Explain step properly
+3. Add reasoning
+4. Continue same example
+5. Final clarity
 
-OUTPUT JSON:
+OUTPUT:
 
 {
   "scenes": [
     {
-      "text": "Socho tumhare paas 100 rupees hai...",
-      "duration": 5
+      "text": "Socho tumhare paas 1000 rupees hai. Ab tum usme 500 aur add karte ho, toh total 1500 ho jata hai. Yaha tum dekh rahe ho ki number ka size badh raha hai.",
+      "duration": 8
     }
   ]
 }
 
 RULES:
-- 5 to 6 scenes only
-- 4–7 sec each
-- SAME example continue in ALL scenes
-- Feels like one continuous explanation
+- 4 to 5 scenes only
+- Each scene must feel complete explanation
+- Same example continue
+- duration 6–10 sec
 - ONLY JSON
 `;
-
         const response = await axios.post(
             "https://api.groq.com/openai/v1/chat/completions",
             {
