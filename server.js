@@ -234,41 +234,54 @@ app.post("/video", async (req, res) => {
         }
 
         // 🔥 MOST IMPORTANT PROMPT (AI TEACHER STYLE)
-        const prompt = `
-You are an engaging ${safeSubject} teacher.
+       const prompt = `
+You are a real classroom teacher.
 
 GOAL:
-Explain the topic like a real teacher teaching a student.
+Teach the topic using ONLY ONE example from start to end.
 
 Topic: ${topic}
 Level: ${finalLevel}
 
-STRICT RULES:
-- Use very simple Hinglish language
-- Break into small teaching steps
-- Each scene = ONE idea only
-- Use examples
-- Ask small questions like "Socho..." or "Samjho..."
-- Keep it engaging (not boring textbook)
-- Avoid long paragraphs
-- Make it feel like teacher is explaining
+IMPORTANT:
+- First scene: introduce ONE example
+- All next scenes MUST continue SAME example
+- Do NOT change example
+- Build understanding step by step
+- Each scene depends on previous scene
+- Make it feel like teacher is explaining continuously
 
-OUTPUT FORMAT (STRICT JSON ONLY):
+TEACHING STYLE:
+- Hinglish (simple)
+- Use "Socho...", "Ab dekho...", "Samjho..."
+- No theory dumping
+- No multiple examples
+- No random jumps
+
+STRUCTURE FLOW:
+1. Introduce example
+2. Show problem
+3. Explain step
+4. Next step
+5. Final understanding
+
+OUTPUT JSON:
 
 {
   "scenes": [
     {
-      "text": "Socho ek ball table pe rakhi hai...",
+      "text": "Socho tumhare paas 100 rupees hai...",
       "duration": 5
     }
   ]
 }
 
 RULES:
-- 5 to 7 scenes only
-- duration between 4 to 8 seconds
-- DO NOT return markdown
-- DO NOT return explanation outside JSON
+- 5 to 6 scenes only
+- 4–7 sec each
+- SAME example continue in ALL scenes
+- Feels like one continuous explanation
+- ONLY JSON
 `;
 
         const response = await axios.post(
