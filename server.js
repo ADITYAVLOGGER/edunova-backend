@@ -401,10 +401,10 @@ app.post("/send-verification", async (req, res) => {
 
         let user;
 
+        // ✅ STEP 1: ensure user exists
         try {
             user = await getAuth().getUserByEmail(email)
         } catch (err) {
-
             if (err.code === "auth/user-not-found") {
                 user = await getAuth().createUser({
                     email: email,
@@ -415,15 +415,17 @@ app.post("/send-verification", async (req, res) => {
             }
         }
 
-        // 🔥 IMPORTANT: small delay (stability fix)
-        await new Promise(resolve => setTimeout(resolve, 500))
+        // ✅ STEP 2: delay (important for stability)
+        await new Promise(resolve => setTimeout(resolve, 800))
 
+        // ✅ STEP 3: generate link
         const link = await getAuth().generateEmailVerificationLink(email)
 
         console.log("VERIFY LINK:", link)
 
+        // ✅ STEP 4: SEND EMAIL (FIXED)
         const response = await resend.emails.send({
-            from: "<onboarding@resend.dev>",
+            from: "EduNova <vloggerindia9999@gmail.com>",   // 🔥 CHANGE THIS
             to: email,
             subject: "Verify your EduNova account",
             html: `
@@ -434,10 +436,22 @@ app.post("/send-verification", async (req, res) => {
                 style="padding:12px 24px;background:#4f46e5;color:white;border-radius:8px;text-decoration:none;">
                 Verify Email
                 </a>
+
+                <p style="margin-top:10px;font-size:12px;color:gray;">
+                If button not working, copy this link:
+                </p>
+                <p style="font-size:12px;">${link}</p>
             `
         })
 
         console.log("RESEND RESPONSE:", response)
+
+        // ✅ IMPORTANT: check resend success
+        if (response.error) {
+            return res.status(500).json({
+                error: response.error.message
+            })
+        }
 
         res.json({ success: true })
 
