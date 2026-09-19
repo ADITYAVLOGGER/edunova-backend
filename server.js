@@ -401,7 +401,8 @@ app.post("/send-verification", async (req, res) => {
         }
 
         // 🔹 Firebase se verification link
-        const link = await admin.auth().generateEmailVerificationLink(email)
+        // const link = await admin.auth().generateEmailVerificationLink(email)
+      const link = await getAuth().generateEmailVerificationLink(email)
 
         // 🔹 Resend se email bhejna
         await resend.emails.send({
