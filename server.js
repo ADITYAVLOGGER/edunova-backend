@@ -3,7 +3,8 @@ const express = require("express")
 const axios = require("axios")
 const cors = require("cors")
 const { Resend } = require("resend")
-const admin = require("firebase-admin")
+const admin = require("firebase-admin/app")
+const { getAuth } = require("firebase-admin/auth")
 const app = express()
 // 🔥 Firebase Admin Init
 const fs = require("fs")
@@ -13,14 +14,13 @@ let serviceAccount;
 try {
   const file = fs.readFileSync("/etc/secrets/serviceAccountKey.json", "utf8")
   console.log("SECRET FILE LOADED ✅")
-
   serviceAccount = JSON.parse(file)
-
 } catch (err) {
   console.error("SECRET FILE ERROR ❌", err.message)
 }
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
+
+const adminApp = admin.initializeApp({
+  credential: admin.cert(serviceAccount)
 })
 app.use(cors())
 app.use(express.json())
