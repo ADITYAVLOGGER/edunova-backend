@@ -399,26 +399,31 @@ app.post("/send-verification", async (req, res) => {
             return res.status(400).json({ error: "Email required" })
         }
 
-        // ✅ STEP 1: create user if not exists
+        let user;
+
         try {
-            await getAuth().createUser({
-                email: email,
-                emailVerified: false
-            })
+            user = await getAuth().getUserByEmail(email)
         } catch (err) {
-            if (err.code !== "auth/email-already-exists") {
+
+            if (err.code === "auth/user-not-found") {
+                user = await getAuth().createUser({
+                    email: email,
+                    emailVerified: false
+                })
+            } else {
                 throw err
             }
         }
 
-        // ✅ STEP 2: generate link
+        // 🔥 IMPORTANT: small delay (stability fix)
+        await new Promise(resolve => setTimeout(resolve, 500))
+
         const link = await getAuth().generateEmailVerificationLink(email)
 
         console.log("VERIFY LINK:", link)
 
-        // ✅ STEP 3: send email
-        await resend.emails.send({
-            from: "onboarding@resend.dev",
+        const response = await resend.emails.send({
+            from: "<onboarding@resend.dev>",
             to: email,
             subject: "Verify your EduNova account",
             html: `
@@ -426,17 +431,22 @@ app.post("/send-verification", async (req, res) => {
                 <p>Click below to verify your email:</p>
 
                 <a href="${link}"
-                style="padding:10px 20px;background:#4f46e5;color:white;border-radius:6px;text-decoration:none;">
+                style="padding:12px 24px;background:#4f46e5;color:white;border-radius:8px;text-decoration:none;">
                 Verify Email
                 </a>
             `
         })
 
+        console.log("RESEND RESPONSE:", response)
+
         res.json({ success: true })
 
     } catch (err) {
-        console.error("EMAIL ERROR:", err.message)
-        res.status(500).json({ error: err.message })
+        console.error("EMAIL ERROR FULL:", err)
+
+        res.status(500).json({
+            error: err.message
+        })
     }
 })
 
