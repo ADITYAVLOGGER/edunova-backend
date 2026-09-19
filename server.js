@@ -8,10 +8,17 @@ const app = express()
 // 🔥 Firebase Admin Init
 const fs = require("fs")
 
-const serviceAccount = JSON.parse(
-  fs.readFileSync("/etc/secrets/serviceAccountKey.json", "utf8")
-)
+let serviceAccount;
 
+try {
+  const file = fs.readFileSync("/etc/secrets/serviceAccountKey.json", "utf8")
+  console.log("SECRET FILE LOADED ✅")
+
+  serviceAccount = JSON.parse(file)
+
+} catch (err) {
+  console.error("SECRET FILE ERROR ❌", err.message)
+}
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 })
