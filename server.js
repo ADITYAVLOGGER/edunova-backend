@@ -2,11 +2,16 @@ require("dotenv").config()
 const express = require("express")
 const axios = require("axios")
 const cors = require("cors")
-
+const { Resend } = require("resend")
+const admin = require("firebase-admin")
 const app = express()
+// 🔥 Firebase Admin Init
+admin.initializeApp({
+  credential: admin.credential.cert(require("./serviceAccountKey.json"))
+})
 app.use(cors())
 app.use(express.json())
-
+const resend = new Resend(process.env.RESEND_API_KEY)
 
 
 app.post("/notes", async (req, res) => {
@@ -371,13 +376,52 @@ Question: ${question}
     }
 });
 
+// ---------------- EMAIL VERIFICATION ----------------
+
+app.post("/send-verification", async (req, res) => {
+    try {
+
+        const { email } = req.body
+
+        if (!email) {
+            return res.status(400).json({ error: "Email required" })
+        }
+
+        // 🔹 Firebase se verification link
+        const link = await admin.auth().generateEmailVerificationLink(email)
+
+        // 🔹 Resend se email bhejna
+        await resend.emails.send({
+            from: "EduNova <onboarding@resend.dev>",
+            to: email,
+            subject: "Verify your EduNova account",
+            html: `
+                <h2>Welcome to EduNova 🚀</h2>
+                <p>Click below to verify your email:</p>
+
+                <a href="${link}" 
+                style="padding:10px 20px;background:#4f46e5;color:white;border-radius:6px;text-decoration:none;">
+                Verify Email
+                </a>
+
+                <p>If button not working, copy this:</p>
+                <p>${link}</p>
+            `
+        })
+
+        res.json({ success: true })
+
+    } catch (err) {
+        console.error("EMAIL ERROR:", err.message)
+
+        res.status(500).json({
+            error: "Email send failed"
+        })
+    }
+})
+
 const PORT = process.env.PORT || 3000
 
 app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`)
-})
-
-// ---------------- SERVER ----------------
-app.listen(3000, () => {
-    console.log("EduNova AI Backend running on port 3000")
 })
