@@ -393,33 +393,42 @@ Question: ${question}
 
 app.post("/send-verification", async (req, res) => {
     try {
-
         const { email } = req.body
 
         if (!email) {
             return res.status(400).json({ error: "Email required" })
         }
 
-        // 🔹 Firebase se verification link
-        // const link = await admin.auth().generateEmailVerificationLink(email)
-      const link = await getAuth().generateEmailVerificationLink(email)
+        // ✅ STEP 1: create user if not exists
+        try {
+            await getAuth().createUser({
+                email: email,
+                emailVerified: false
+            })
+        } catch (err) {
+            if (err.code !== "auth/email-already-exists") {
+                throw err
+            }
+        }
 
-        // 🔹 Resend se email bhejna
+        // ✅ STEP 2: generate link
+        const link = await getAuth().generateEmailVerificationLink(email)
+
+        console.log("VERIFY LINK:", link)
+
+        // ✅ STEP 3: send email
         await resend.emails.send({
-            from: "EduNova <onboarding@resend.dev>",
+            from: "onboarding@resend.dev",
             to: email,
             subject: "Verify your EduNova account",
             html: `
                 <h2>Welcome to EduNova 🚀</h2>
                 <p>Click below to verify your email:</p>
 
-                <a href="${link}" 
+                <a href="${link}"
                 style="padding:10px 20px;background:#4f46e5;color:white;border-radius:6px;text-decoration:none;">
                 Verify Email
                 </a>
-
-                <p>If button not working, copy this:</p>
-                <p>${link}</p>
             `
         })
 
@@ -427,10 +436,7 @@ app.post("/send-verification", async (req, res) => {
 
     } catch (err) {
         console.error("EMAIL ERROR:", err.message)
-
-        res.status(500).json({
-            error: "Email send failed"
-        })
+        res.status(500).json({ error: err.message })
     }
 })
 
